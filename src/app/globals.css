@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Paleta "libreta": papel cálido y tinta azul, como la planilla en papel */
+:root {
+  --papel: #faf8f3;
+  --hoja: #ffffff;
+  --tinta: #1e2a78;
+  --tinta-suave: #e8ebfb;
+  --texto: #1c1b19;
+  --texto-2: #6b6760;
+  --borde: #e4e0d6;
+  --presente: #15803d;
+  --presente-bg: #dcfce7;
+  --ausente: #b91c1c;
+  --ausente-bg: #fee2e2;
+  --tarde: #b45309;
+  --tarde-bg: #fef3c7;
+  --justif: #475569;
+  --justif-bg: #e2e8f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papel: #141413;
+    --hoja: #1d1d1b;
+    --tinta: #9fb0ff;
+    --tinta-suave: #262c4d;
+    --texto: #ecebe7;
+    --texto-2: #a19d95;
+    --borde: #34332f;
+    --presente: #4ade80;
+    --presente-bg: #14532d;
+    --ausente: #f87171;
+    --ausente-bg: #5f1d1d;
+    --tarde: #fbbf24;
+    --tarde-bg: #57390c;
+    --justif: #cbd5e1;
+    --justif-bg: #334155;
+  }
+}
+
+@theme inline {
+  --color-papel: var(--papel);
+  --color-hoja: var(--hoja);
+  --color-tinta: var(--tinta);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-borde: var(--borde);
+  --color-presente: var(--presente);
+  --color-presente-bg: var(--presente-bg);
+  --color-ausente: var(--ausente);
+  --color-ausente-bg: var(--ausente-bg);
+  --color-tarde: var(--tarde);
+  --color-tarde-bg: var(--tarde-bg);
+  --color-justif: var(--justif);
+  --color-justif-bg: var(--justif-bg);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+body {
+  background: var(--papel);
+  color: var(--texto);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .tarjeta {
+    @apply rounded-2xl border border-borde bg-hoja;
+  }
+  .campo {
+    @apply w-full rounded-xl border border-borde bg-hoja px-3 py-2.5 text-base outline-none focus:border-tinta focus:ring-2 focus:ring-tinta-suave;
+  }
+  .etiqueta {
+    @apply mb-1 block text-sm font-medium text-texto-2;
+  }
+  .boton {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-borde bg-hoja px-4 py-2.5 text-sm font-semibold active:scale-[0.98] disabled:opacity-50;
+  }
+  .boton-primario {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-tinta px-4 py-2.5 text-sm font-semibold text-hoja active:scale-[0.98] disabled:opacity-50;
+  }
+  .titulo-seccion {
+    @apply mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-texto-2;
+  }
+}
