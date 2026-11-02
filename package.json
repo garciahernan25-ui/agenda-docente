@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --tsconfig tsconfig.json scripts/seed.ts",
     "pdf:prueba": "tsx --tsconfig tsconfig.json scripts/pdf-prueba.ts",
-    "clave": "tsx scripts/clave.mts"
+    "clave": "tsx scripts/clave.mts",
+    "db:migrar": "tsx --tsconfig tsconfig.json scripts/migrar.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
