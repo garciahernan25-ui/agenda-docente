@@ -18,6 +18,7 @@ export const NOMBRE_TIPO_EVENTO: Record<TipoEvento, string> = {
   valoracion_preliminar: "Valoración preliminar",
   reunion: "Reunión",
   acto: "Acto",
+  salida: "Salida educativa",
   sin_clases: "Sin clases",
   otro: "Otro",
 };
@@ -31,6 +32,7 @@ export const COLOR_TIPO_EVENTO: Record<TipoEvento, string> = {
   valoracion_preliminar: "bg-tinta-suave text-tinta",
   reunion: "bg-justif-bg text-justif",
   acto: "bg-justif-bg text-justif",
+  salida: "bg-presente-bg text-presente",
   sin_clases: "bg-justif-bg text-justif",
   otro: "bg-justif-bg text-justif",
 };
@@ -42,6 +44,7 @@ export const PUNTO_TIPO_EVENTO: Record<TipoEvento, string> = {
   intensificacion: "bg-tarde",
   valoracion_preliminar: "bg-tinta",
   reunion: "bg-justif",
+  salida: "bg-presente",
   acto: "bg-justif",
   sin_clases: "bg-justif",
   otro: "bg-justif",

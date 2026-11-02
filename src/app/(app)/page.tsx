@@ -81,8 +81,8 @@ async function Contenido() {
                   </p>
                   <p className="text-xs text-texto-2">{m.turno}</p>
                 </Link>
-                <Link href={`/materias/${m.id}/asistencia`} className="boton-primario shrink-0 px-3 py-2">
-                  Asistencia
+                <Link href={`/materias/${m.id}`} className="boton-primario shrink-0 px-5 py-2">
+                  Ir
                 </Link>
               </li>
             ))}

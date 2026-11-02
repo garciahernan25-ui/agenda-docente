@@ -15,6 +15,7 @@ import {
   VALORACIONES,
   TIPOS_EVENTO,
   REPETICIONES,
+  TIPOS_PROYECTO,
 } from "./constantes";
 
 export * from "./constantes";
@@ -317,3 +318,78 @@ export const planFormativo = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.asignacionId, t.inscripcionId, t.nivel] })],
 );
+
+/* ---------------- Planificación anual ---------------- */
+
+// Lo que es texto corrido del modelo. En las listas, cada renglón es una viñeta.
+export type PlanificacionAnual = {
+  cargaHoraria?: string;
+  fundamentacion?: string;
+  objetivosEnsenanza?: string;
+  objetivosAprendizaje?: string;
+  estrategias?: string;
+  recursos?: string;
+  sistemaEvaluativo?: string;
+  criterios?: string;
+  bibliografiaDocente?: string;
+  bibliografiaEstudiante?: string;
+  proyectos?: string;
+  observaciones?: string;
+  fechaEntrega?: string;
+};
+
+export const planificaciones = sqliteTable("planificaciones", {
+  asignacionId: integer("asignacion_id")
+    .primaryKey()
+    .references(() => asignaciones.id, { onDelete: "cascade" }),
+  contenido: text("contenido", { mode: "json" }).$type<PlanificacionAnual>().notNull(),
+  actualizadoEn: creado(),
+});
+
+// Unidades de la planificación, cada una en su cuatrimestre
+export const unidades = sqliteTable("unidades", {
+  id: id(),
+  asignacionId: integer("asignacion_id")
+    .notNull()
+    .references(() => asignaciones.id, { onDelete: "cascade" }),
+  cuatrimestre: integer("cuatrimestre").notNull(), // 1 | 2
+  orden: integer("orden").notNull().default(0),
+  titulo: text("titulo").notNull(), // "Unidad 1: Materia y energía"
+  eje: text("eje"), // "Eje temático: …"
+  contenidos: text("contenidos").notNull().default(""),
+  creadoEn: creado(),
+});
+
+/* ---------------- Proyectos (salidas educativas, laboratorio, otros) ---------------- */
+
+// Textos del proyecto; según el tipo, algunas partes cambian de nombre en la pantalla y en el archivo
+export type ContenidoProyecto = {
+  responsables?: string;
+  fundamentacion?: string;
+  objetivos?: string;
+  contenidos?: string;
+  antes?: string;
+  durante?: string;
+  despues?: string;
+  recursos?: string;
+  logistica?: string; // itinerario y traslado (salida) o normas de seguridad (laboratorio)
+  evaluacion?: string;
+  observaciones?: string;
+};
+
+export const proyectos = sqliteTable("proyectos", {
+  id: id(),
+  asignacionId: integer("asignacion_id")
+    .notNull()
+    .references(() => asignaciones.id, { onDelete: "cascade" }),
+  tipo: text("tipo", { enum: TIPOS_PROYECTO }).notNull().default("salida"),
+  titulo: text("titulo").notNull(),
+  fecha: text("fecha"), // YYYY-MM-DD
+  horaInicio: text("hora_inicio"),
+  horaFin: text("hora_fin"),
+  lugar: text("lugar"),
+  contenido: text("contenido", { mode: "json" }).$type<ContenidoProyecto>().notNull(),
+  conNomina: integer("con_nomina", { mode: "boolean" }).notNull().default(true),
+  eventoId: integer("evento_id").references(() => eventos.id, { onDelete: "set null" }),
+  creadoEn: creado(),
+});

@@ -39,3 +39,11 @@ export function fechaMini(iso: string): string {
 export function cuatrimestreDe(iso: string): 1 | 2 {
   return partes(iso).m <= 7 ? 1 : 2;
 }
+
+const DIAS_LARGOS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+// "viernes 13 de noviembre de 2026"
+export function fechaLarga(iso: string): string {
+  const { y, m, d, dow } = partes(iso);
+  return `${DIAS_LARGOS[dow]} ${d} de ${MESES_LARGOS[m - 1]} de ${y}`;
+}

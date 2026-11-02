@@ -6,7 +6,8 @@ import { exigirDocente } from "@/lib/auth";
 import { arbolCursos } from "@/lib/consultas";
 import { hoyAR } from "@/lib/fechas";
 import { salir } from "@/app/login/actions";
-import { cambiarFormato, crearCurso, crearDivision, crearEscuela, crearModalidad } from "./actions";
+import { BotonBorrar } from "@/components/boton-borrar";
+import { borrarElemento, crearCurso, crearDivision, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
 
 export const metadata = { title: "Cursos · Agenda docente" };
 
@@ -41,31 +42,111 @@ async function Arbol() {
 
       {arbol.map((m) => (
         <section key={m.id}>
-          <div className="flex items-center justify-between">
-            <h2 className="titulo-seccion">{m.nombre}</h2>
-            <form action={cambiarFormato} className="mt-4 flex items-center gap-1 text-xs text-texto-2">
-              <input type="hidden" name="id" value={m.id} />
-              Planillas:
-              <select name="formato" defaultValue={m.formato} className="rounded-lg border border-borde bg-hoja px-2 py-1">
-                <option value="secundaria">Secundaria común</option>
-                <option value="eps">EPS (RITE + plan formativo)</option>
-              </select>
-              <button className="font-semibold text-tinta">OK</button>
-            </form>
+          <div className="mt-6 mb-2 flex flex-wrap items-center justify-between gap-x-3">
+            <h2 className="titulo-seccion my-0">
+              {m.nombre}
+              <span className="ml-2 font-normal normal-case tracking-normal">
+                · {m.formato === "eps" ? "planillas EPS" : "planillas de secundaria"}
+              </span>
+            </h2>
+            <Editar>
+              <form action={editarModalidad} className="space-y-2">
+                <input type="hidden" name="id" value={m.id} />
+                <label className="block">
+                  <span className="etiqueta">Nombre de la modalidad</span>
+                  <input name="nombre" required defaultValue={m.nombre} className="campo" />
+                </label>
+                <label className="block">
+                  <span className="etiqueta">Planillas que usa</span>
+                  <select name="formato" defaultValue={m.formato} className="campo">
+                    <option value="secundaria">Secundaria común</option>
+                    <option value="eps">EPS (RITE + plan formativo)</option>
+                  </select>
+                </label>
+                <button className="boton-primario w-full">Guardar</button>
+              </form>
+              <div className="mt-3 text-center">
+                <BotonBorrar
+                  accion={borrarElemento}
+                  campos={{ nivel: "modalidad", id: m.id }}
+                  texto="Borrar modalidad"
+                  aviso={`Se borra "${m.nombre}" con todas sus escuelas, cursos, alumnos, notas y asistencias.`}
+                />
+              </div>
+            </Editar>
           </div>
           <div className="space-y-3">
             {m.escuelas.map((e) => (
               <div key={e.id} className="tarjeta p-4">
-                <p className="font-semibold">{e.nombre}</p>
-                {e.distrito && <p className="text-xs text-texto-2">{e.distrito}</p>}
+                <div className="flex flex-wrap items-start justify-between gap-x-3">
+                  <div>
+                    <p className="font-semibold">{e.nombre}</p>
+                    {e.distrito && <p className="text-xs text-texto-2">{e.distrito}</p>}
+                  </div>
+                  <Editar>
+                    <form action={editarEscuela} className="space-y-2">
+                      <input type="hidden" name="id" value={e.id} />
+                      <label className="block">
+                        <span className="etiqueta">Nombre</span>
+                        <input name="nombre" required defaultValue={e.nombre} className="campo" />
+                      </label>
+                      <label className="block">
+                        <span className="etiqueta">Distrito</span>
+                        <input name="distrito" defaultValue={e.distrito ?? ""} className="campo" />
+                      </label>
+                      <label className="block">
+                        <span className="etiqueta">Modalidad</span>
+                        <select name="modalidadId" defaultValue={m.id} className="campo">
+                          {arbol.map((o) => (
+                            <option key={o.id} value={o.id}>{o.nombre}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button className="boton-primario w-full">Guardar</button>
+                    </form>
+                    <div className="mt-3 text-center">
+                      <BotonBorrar
+                        accion={borrarElemento}
+                        campos={{ nivel: "escuela", id: e.id }}
+                        texto="Borrar escuela"
+                        aviso={`Se borra "${e.nombre}" con todos sus cursos, alumnos, notas, asistencias y eventos del calendario.`}
+                      />
+                    </div>
+                  </Editar>
+                </div>
 
                 <ul className="mt-3 space-y-3">
                   {e.cursos.map((c) => (
                     <li key={c.id}>
-                      <p className="text-sm font-medium">
-                        {m.formato === "eps" ? `Nivel ${c.anio}` : `${c.anio} año`} · {c.cicloLectivo}
-                      </p>
+                      <div className="flex flex-wrap items-start justify-between gap-x-3">
+                        <p className="text-sm font-medium">
+                          {m.formato === "eps" ? `Nivel ${c.anio}` : `${c.anio} año`} · {c.cicloLectivo}
+                        </p>
+                        <Editar>
+                          <form action={editarCurso} className="grid grid-cols-2 gap-2">
+                            <input type="hidden" name="id" value={c.id} />
+                            <label>
+                              <span className="etiqueta">{m.formato === "eps" ? "Nivel" : "Año"}</span>
+                              <input name="anio" required defaultValue={c.anio} className="campo" />
+                            </label>
+                            <label>
+                              <span className="etiqueta">Ciclo lectivo</span>
+                              <input name="cicloLectivo" type="number" defaultValue={c.cicloLectivo} className="campo" />
+                            </label>
+                            <button className="boton-primario col-span-2">Guardar</button>
+                          </form>
+                          <div className="mt-3 text-center">
+                            <BotonBorrar
+                              accion={borrarElemento}
+                              campos={{ nivel: "curso", id: c.id }}
+                              texto="Borrar curso"
+                              aviso="Se borra el curso con sus divisiones, materias, alumnos, notas y asistencias."
+                            />
+                          </div>
+                        </Editar>
+                      </div>
                       <div className="mt-1.5 flex flex-wrap gap-2">
+
                         {c.divisiones.map((d) => (
                           <Link
                             key={d.id}
@@ -79,6 +160,9 @@ async function Arbol() {
                           </Link>
                         ))}
                       </div>
+                      {c.divisiones.length > 0 && (
+                        <p className="mt-1 text-[11px] text-texto-2">Tocá la división para cambiar sus datos, materias o alumnos, o para borrarla.</p>
+                      )}
                       <Desplegable texto="+ División">
                         <form action={crearDivision} className="grid grid-cols-2 gap-2">
                           <input type="hidden" name="cursoId" value={c.id} />
@@ -137,6 +221,16 @@ function Desplegable({ texto, children }: { texto: string; children: React.React
     <details className="group mt-3">
       <summary className="cursor-pointer list-none text-sm font-semibold text-tinta">{texto}</summary>
       <div className="mt-2">{children}</div>
+    </details>
+  );
+}
+
+// "Editar" chiquito a la derecha; al abrirlo, el formulario ocupa todo el ancho de abajo
+function Editar({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="group shrink-0 text-right open:basis-full open:text-left [&[open]>summary]:text-texto">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-texto-2">Editar</summary>
+      <div className="mt-2 rounded-xl border border-borde bg-papel p-3">{children}</div>
     </details>
   );
 }

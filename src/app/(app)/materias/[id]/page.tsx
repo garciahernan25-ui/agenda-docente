@@ -53,6 +53,14 @@ async function Contenido({
           <Link href={`${base}/planilla`} className="boton py-3">Planilla de notas</Link>
         )}
         <Link href={`${base}/cierre?c=${c}`} className="boton py-3">Cierre {c}° C</Link>
+        <Link href={`${base}/planificacion`} className="boton py-3">Planificación anual</Link>
+        <Link href={`${base}/proyectos`} className="boton py-3">Proyectos</Link>
+        <Link
+          href={`${base}/quizzes`}
+          className={`boton py-3 ${cab.modalidad.formato === "eps" ? "" : "col-span-2"}`}
+        >
+          Traer notas de quizzes
+        </Link>
       </div>
 
       <div className="mt-5 flex items-center justify-between">

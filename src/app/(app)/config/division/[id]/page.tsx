@@ -7,7 +7,8 @@ import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { PESOS_POR_DEFECTO } from "@/lib/calculos";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
-import { actualizarInscripcion, agregarAlumnos, crearMateria, guardarDivision, guardarMateria } from "../../actions";
+import { BotonBorrar } from "@/components/boton-borrar";
+import { actualizarInscripcion, agregarAlumnos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
 
 export default function Division(props: PageProps<"/config/division/[id]">) {
   return (
@@ -70,6 +71,14 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           </label>
           <button className="boton-primario col-span-2">Guardar</button>
         </form>
+        <div className="mt-3 text-center">
+          <BotonBorrar
+            accion={borrarElemento}
+            campos={{ nivel: "division", id, volver: "/config" }}
+            texto="Borrar esta división"
+            aviso="Se borra la división con sus materias, alumnos, notas, asistencias y cierres."
+          />
+        </div>
       </details>
 
       <h2 className="titulo-seccion">Materias</h2>
@@ -145,6 +154,14 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                 </fieldset>
                 <button className="boton-primario w-full">Guardar materia</button>
               </form>
+              <div className="mt-3 text-center">
+                <BotonBorrar
+                  accion={borrarElemento}
+                  campos={{ nivel: "materia", id: m.id }}
+                  texto="Borrar esta materia"
+                  aviso={`Se borra ${m.materia} con sus temas, clases, notas, asistencias, cierres y eventos del calendario. Los alumnos de la división quedan.`}
+                />
+              </div>
             </details>
           );
         })}
@@ -175,6 +192,14 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
               </summary>
               <form action={actualizarInscripcion} className="mt-2 grid grid-cols-2 gap-2 pb-1">
                 <input type="hidden" name="id" value={insc.id} />
+                <label>
+                  <span className="text-[11px] text-texto-2">Apellido</span>
+                  <input name="apellido" required defaultValue={alumno.apellido} className="campo" />
+                </label>
+                <label>
+                  <span className="text-[11px] text-texto-2">Nombre</span>
+                  <input name="nombre" defaultValue={alumno.nombre} className="campo" />
+                </label>
                 <select name="cursaRecursa" defaultValue={insc.cursaRecursa} className="campo">
                   <option value="C">Cursa</option>
                   <option value="R">Recursa</option>
@@ -201,6 +226,14 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                 <input name="observacion" defaultValue={insc.observacion ?? ""} placeholder="Observación (T.M, pase…)" className="campo col-span-2" />
                 <button className="boton col-span-2">Guardar</button>
               </form>
+              <div className="pb-2 pt-1 text-center">
+                <BotonBorrar
+                  accion={borrarAlumno}
+                  campos={{ id: insc.id }}
+                  texto="Borrar (lo cargué por error)"
+                  aviso={`Se borra a ${alumno.apellido}, ${alumno.nombre} con sus notas y asistencias, y los que siguen suben un número. Si dejó la escuela, mejor marcalo como Baja.`}
+                />
+              </div>
             </details>
           </li>
         ))}
@@ -215,10 +248,10 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
             name="lista"
             required
             rows={8}
-            placeholder={"Uno por renglón, en el orden de la planilla:\nFLORES, Thiago\nMORA, Bianca\n…"}
+            placeholder={"Uno por renglón, en el orden de la planilla:\nPÉREZ, Juan\nGÓMEZ, Ana\n…"}
             className="campo font-mono text-sm"
           />
-          <p className="text-xs text-texto-2">Se agregan al final de la lista. La baja se marca después, nunca se borra a nadie.</p>
+          <p className="text-xs text-texto-2">Se agregan al final de la lista. Si alguien dejó de venir, marcalo como Baja así conserva su número en la planilla.</p>
           <button className="boton-primario w-full">Agregar alumnos</button>
         </form>
       </details>

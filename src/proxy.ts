@@ -16,5 +16,5 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   // todo menos archivos estáticos
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon|icons/|sw.js|offline.html|\\.well-known/).*)"],
 };

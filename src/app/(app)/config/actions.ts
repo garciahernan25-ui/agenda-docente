@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, max } from "drizzle-orm";
+import { and, asc, eq, gt, max } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/db/schema";
 import { exigirDocente } from "@/lib/auth";
 import { PESOS_POR_DEFECTO } from "@/lib/calculos";
+import { borrarEnCascada, borrarInscripcion } from "@/lib/borrar";
 
 const texto = z.string().trim().min(1, "Completá este campo");
 const opcional = z.string().trim().optional().transform((v) => v || null);
@@ -131,8 +132,15 @@ export async function actualizarInscripcion(form: FormData) {
     observacion: opcional,
     nivel: z.preprocess((v) => (v === "" || v === undefined ? null : v), z.coerce.number().int().min(1).max(4).nullable()),
     inicioEps: opcional,
+    apellido: z.string().trim().optional(),
+    nombre: z.string().trim().optional(),
   });
-  await db.update(inscripciones).set(d).where(eq(inscripciones.id, d.id));
+  const { apellido, nombre, ...insc } = d;
+  await db.update(inscripciones).set(insc).where(eq(inscripciones.id, d.id));
+  if (apellido) {
+    const [fila] = await db.select({ alumnoId: inscripciones.alumnoId }).from(inscripciones).where(eq(inscripciones.id, d.id));
+    if (fila) await db.update(alumnos).set({ apellido: apellido.toUpperCase(), nombre: nombre ?? "" }).where(eq(alumnos.id, fila.alumnoId));
+  }
   listo();
 }
 
@@ -181,5 +189,62 @@ export async function guardarDivision(form: FormData) {
   await exigirDocente();
   const d = datos(form, { id: entero, seccion: texto, turno: z.enum(TURNOS), preceptor: opcional });
   await db.update(divisiones).set(d).where(eq(divisiones.id, d.id));
+  listo();
+}
+
+// ---- Editar lo que está arriba de la división ----
+
+export async function editarModalidad(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, { id: entero, nombre: texto, formato: z.enum(FORMATOS) });
+  try {
+    await db.update(modalidades).set({ nombre: d.nombre, formato: d.formato }).where(eq(modalidades.id, d.id));
+  } catch {
+    // nombre repetido: queda como estaba
+  }
+  listo();
+}
+
+export async function editarEscuela(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, { id: entero, nombre: texto, distrito: opcional, modalidadId: entero });
+  await db.update(escuelas).set({ nombre: d.nombre, distrito: d.distrito, modalidadId: d.modalidadId }).where(eq(escuelas.id, d.id));
+  listo();
+}
+
+export async function editarCurso(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, { id: entero, anio: texto, cicloLectivo: z.coerce.number().int().min(2020).max(2100) });
+  await db.update(cursos).set({ anio: d.anio, cicloLectivo: d.cicloLectivo }).where(eq(cursos.id, d.id));
+  listo();
+}
+
+// ---- Borrar (con todo lo que tiene adentro) ----
+
+const NIVELES = ["modalidad", "escuela", "curso", "division", "materia"] as const;
+
+export async function borrarElemento(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, { nivel: z.enum(NIVELES), id: entero, volver: z.string().startsWith("/").optional() });
+  await borrarEnCascada(d.nivel, d.id);
+  listo();
+  if (d.volver) redirect(d.volver);
+}
+
+export async function borrarAlumno(form: FormData) {
+  await exigirDocente();
+  const { id } = datos(form, { id: entero });
+  const insc = await borrarInscripcion(id);
+  if (insc) {
+    // Corre un lugar hacia arriba a los que estaban después, para que no quede un hueco en la planilla
+    const siguientes = await db
+      .select({ id: inscripciones.id, orden: inscripciones.orden })
+      .from(inscripciones)
+      .where(and(eq(inscripciones.divisionId, insc.divisionId), gt(inscripciones.orden, insc.orden)))
+      .orderBy(asc(inscripciones.orden));
+    for (const s of siguientes) {
+      await db.update(inscripciones).set({ orden: s.orden - 1 }).where(eq(inscripciones.id, s.id));
+    }
+  }
   listo();
 }

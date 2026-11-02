@@ -32,6 +32,7 @@ export const TIPOS_EVENTO = [
   "valoracion_preliminar",
   "reunion",
   "acto",
+  "salida", // salida educativa
   "sin_clases", // paro, jornada, feriado: las clases de ese día quedan como no dictadas
   "otro",
 ] as const;
@@ -40,3 +41,7 @@ export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export const REPETICIONES = ["ninguna", "semanal", "quincenal", "mensual"] as const;
 export type Repeticion = (typeof REPETICIONES)[number];
 
+
+// Proyectos que pide la escuela para salir o usar el laboratorio
+export const TIPOS_PROYECTO = ["salida", "laboratorio", "otro"] as const;
+export type TipoProyecto = (typeof TIPOS_PROYECTO)[number];
