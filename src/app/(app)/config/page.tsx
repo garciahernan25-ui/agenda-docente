@@ -8,6 +8,7 @@ import { hoyAR } from "@/lib/fechas";
 import { salir } from "@/app/login/actions";
 import { BotonBorrar } from "@/components/boton-borrar";
 import { borrarElemento, crearComision, crearCurso, crearDivision, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
+import { BotonGuardar, FormGuardar } from "@/components/form-guardar";
 
 export const metadata = { title: "Cursos · Agenda docente" };
 
@@ -50,7 +51,7 @@ async function Arbol() {
               </span>
             </h2>
             <Editar>
-              <form action={editarModalidad} className="space-y-2">
+              <FormGuardar accion={editarModalidad} className="space-y-2">
                 <input type="hidden" name="id" value={m.id} />
                 <label className="block">
                   <span className="etiqueta">Nombre de la modalidad</span>
@@ -63,8 +64,8 @@ async function Arbol() {
                     <option value="eps">EPS (RITE + plan formativo)</option>
                   </select>
                 </label>
-                <button className="boton-primario w-full">Guardar</button>
-              </form>
+                <BotonGuardar className="boton-primario w-full" texto="Guardar" />
+              </FormGuardar>
               <div className="mt-3 text-center">
                 <BotonBorrar
                   accion={borrarElemento}
@@ -84,7 +85,7 @@ async function Arbol() {
                     {e.distrito && <p className="text-xs text-texto-2">{e.distrito}</p>}
                   </div>
                   <Editar>
-                    <form action={editarEscuela} className="space-y-2">
+                    <FormGuardar accion={editarEscuela} className="space-y-2">
                       <input type="hidden" name="id" value={e.id} />
                       <label className="block">
                         <span className="etiqueta">Nombre</span>
@@ -102,8 +103,8 @@ async function Arbol() {
                           ))}
                         </select>
                       </label>
-                      <button className="boton-primario w-full">Guardar</button>
-                    </form>
+                      <BotonGuardar className="boton-primario w-full" texto="Guardar" />
+                    </FormGuardar>
                     <div className="mt-3 text-center">
                       <BotonBorrar
                         accion={borrarElemento}
@@ -127,7 +128,7 @@ async function Arbol() {
                           {c.anio} año · {c.cicloLectivo}
                         </p>
                         <Editar>
-                          <form action={editarCurso} className="grid grid-cols-2 gap-2">
+                          <FormGuardar accion={editarCurso} className="grid grid-cols-2 gap-2">
                             <input type="hidden" name="id" value={c.id} />
                             <label>
                               <span className="etiqueta">Año</span>
@@ -137,8 +138,8 @@ async function Arbol() {
                               <span className="etiqueta">Ciclo lectivo</span>
                               <input name="cicloLectivo" type="number" defaultValue={c.cicloLectivo} className="campo" />
                             </label>
-                            <button className="boton-primario col-span-2">Guardar</button>
-                          </form>
+                            <BotonGuardar className="boton-primario col-span-2" texto="Guardar" />
+                          </FormGuardar>
                           <div className="mt-3 text-center">
                             <BotonBorrar
                               accion={borrarElemento}

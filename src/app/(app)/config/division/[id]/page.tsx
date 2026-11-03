@@ -10,6 +10,7 @@ import { NOMBRE_CATEGORIA } from "@/lib/textos";
 import { BotonBorrar } from "@/components/boton-borrar";
 import { nombreGrupo, textosGrupo } from "@/lib/grupo";
 import { actualizarInscripcion, agregarAlumnos, asignarNivelATodos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
+import { BotonGuardar, FormGuardar } from "@/components/form-guardar";
 
 export default function Division(props: PageProps<"/config/division/[id]">) {
   return (
@@ -53,7 +54,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
 
       <details className="tarjeta p-4">
         <summary className="cursor-pointer text-sm font-semibold">Datos de la {t.grupo}</summary>
-        <form action={guardarDivision} className="mt-3 grid grid-cols-2 gap-2">
+        <FormGuardar accion={guardarDivision} className="mt-3 grid grid-cols-2 gap-2">
           <input type="hidden" name="id" value={id} />
           <label>
             <span className="etiqueta">{eps ? "Nombre" : "Sección"}</span>
@@ -71,8 +72,8 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
             <span className="etiqueta">{t.responsable}</span>
             <input name="preceptor" defaultValue={d.div.preceptor ?? ""} className="campo" />
           </label>
-          <button className="boton-primario col-span-2">Guardar</button>
-        </form>
+          <BotonGuardar className="boton-primario col-span-2" texto="Guardar" />
+        </FormGuardar>
         <div className="mt-3 text-center">
           <BotonBorrar
             accion={borrarElemento}
@@ -92,7 +93,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
               <summary className="cursor-pointer font-semibold">
                 {m.materia} <span className="text-sm font-normal text-texto-2">· {m.profesor}</span>
               </summary>
-              <form action={guardarMateria} className="mt-3 space-y-3">
+              <FormGuardar accion={guardarMateria} className="mt-3 space-y-3">
                 <input type="hidden" name="id" value={m.id} />
                 <div className="grid grid-cols-2 gap-2">
                   <label className="col-span-2">
@@ -154,8 +155,8 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                   <p className="mt-1 text-xs text-texto-2">No hace falta que sumen 100: se usan como proporción.</p>
                 </fieldset>
-                <button className="boton-primario w-full">Guardar materia</button>
-              </form>
+                <BotonGuardar className="boton-primario w-full" texto="Guardar materia" />
+              </FormGuardar>
               <div className="mt-3 text-center">
                 <BotonBorrar
                   accion={borrarElemento}
@@ -203,7 +204,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                 {insc.cursaRecursa === "R" && <span className="rounded bg-tarde-bg px-1.5 text-xs font-bold text-tarde">R</span>}
                 {insc.estado === "baja" && <span className="text-xs">baja{insc.observacion ? ` · ${insc.observacion}` : ""}</span>}
               </summary>
-              <form action={actualizarInscripcion} className="mt-2 grid grid-cols-2 gap-2 pb-1">
+              <FormGuardar accion={actualizarInscripcion} className="mt-2 grid grid-cols-2 gap-2 pb-1">
                 <input type="hidden" name="id" value={insc.id} />
                 <label>
                   <span className="text-[11px] text-texto-2">Apellido</span>
@@ -237,8 +238,8 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                   </>
                 )}
                 <input name="observacion" defaultValue={insc.observacion ?? ""} placeholder="Observación (T.M, pase…)" className="campo col-span-2" />
-                <button className="boton col-span-2">Guardar</button>
-              </form>
+                <BotonGuardar className="boton col-span-2" texto="Guardar" />
+              </FormGuardar>
               <div className="pb-2 pt-1 text-center">
                 <BotonBorrar
                   accion={borrarAlumno}
