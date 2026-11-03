@@ -9,6 +9,7 @@ import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, fechaCortaMayus, hoyAR } from "@/lib/fechas";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
 import { CargarNotas } from "./cargar";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Notas(props: PageProps<"/materias/[id]/notas">) {
   return (
@@ -56,7 +57,7 @@ async function Contenido({
     <>
       <Encabezado
         titulo="Cargar notas"
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia} · ${c}° cuatrimestre`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia} · ${c}° cuatrimestre`}
         volver={`/materias/${id}?c=${c}`}
       />
       <CargarNotas

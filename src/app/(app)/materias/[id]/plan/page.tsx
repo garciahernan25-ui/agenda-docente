@@ -3,6 +3,7 @@ import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { datosPlanFormativo } from "@/lib/eps";
 import { EditorPlan } from "./editor";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Plan(props: PageProps<"/materias/[id]/plan">) {
   return (
@@ -22,7 +23,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <div className="mx-auto max-w-[1100px]">
         <Encabezado
           titulo="Plan de trabajo formativo"
-          subtitulo={`Nivel ${cab.curso.anio} ${cab.div.seccion} · ${cab.escuela.nombre}`}
+          subtitulo={`${grupoDe(cab)} · ${cab.escuela.nombre}`}
           volver={`/materias/${id}`}
         />
         <EditorPlan

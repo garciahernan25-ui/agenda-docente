@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { CATEGORIAS, type Categoria } from "@/db/constantes";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import { encolar, esFallaDeRed } from "@/lib/pendientes";
 import { crearTema, guardarGrillaTema, renombrarTema } from "../acciones";
 
 // Todas las formas de evaluar un tema (el examen es del cuatrimestre, no de un tema)
@@ -53,6 +54,10 @@ export function GrillaTema(props: {
   const [valores, setValores] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(original).map(([k, v]) => [k, v.texto])),
   );
+  // Lo que se toma como "ya guardado": lo que vino del servidor, o lo que quedó guardado en el celu sin señal
+  const [guardado, setGuardado] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(original).map(([k, v]) => [k, v.texto])),
+  );
   const [fecha, setFecha] = useState(props.hoy);
   const [nuevoTema, setNuevoTema] = useState("");
   const [renombrando, setRenombrando] = useState(false);
@@ -60,7 +65,7 @@ export function GrillaTema(props: {
   const [mensaje, setMensaje] = useState<{ ok: boolean; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
 
-  const cambiadas = Object.keys(valores).filter((k) => valores[k] !== original[k].texto);
+  const cambiadas = Object.keys(valores).filter((k) => valores[k] !== guardado[k]);
   const invalidas = cambiadas.filter((k) => !valida(valores[k]));
   const aBorrar = cambiadas.filter((k) => valores[k] === "" && original[k].notaId !== null).length;
 
@@ -103,27 +108,32 @@ export function GrillaTema(props: {
       return;
     }
     if (aBorrar && !confirm(`Vas a borrar ${aBorrar} ${aBorrar === 1 ? "nota" : "notas"} que dejaste en blanco. ¿Seguimos?`)) return;
+    const tema = props.tema;
+    const celdas = cambiadas.map((k) => {
+      const [insc, cat] = k.split("|");
+      return { inscripcionId: Number(insc), categoria: cat as Categoria, notaId: original[k].notaId, valor: valores[k] === "" ? null : num(valores[k]) };
+    });
+    const enCelu = () => {
+      encolar({
+        tipo: "celdas",
+        descripcion: `Notas de “${tema.titulo}”`,
+        asignacionId: props.asignacionId,
+        temaId: tema.id,
+        fecha,
+        celdas: celdas.map(({ inscripcionId, categoria, valor }) => ({ inscripcionId, categoria, valor })),
+      });
+      setGuardado({ ...valores });
+      setMensaje({ ok: true, texto: "Sin señal: quedaron guardadas en el celu y se mandan solas cuando vuelva internet." });
+    };
+    if (!navigator.onLine) return enCelu();
     iniciar(async () => {
       try {
-        await guardarGrillaTema({
-          asignacionId: props.asignacionId,
-          cuatrimestre: props.cuatrimestre,
-          temaId: props.tema!.id,
-          fecha,
-          celdas: cambiadas.map((k) => {
-            const [insc, cat] = k.split("|");
-            return {
-              inscripcionId: Number(insc),
-              categoria: cat as Categoria,
-              notaId: original[k].notaId,
-              valor: valores[k] === "" ? null : num(valores[k]),
-            };
-          }),
-        });
+        await guardarGrillaTema({ asignacionId: props.asignacionId, cuatrimestre: props.cuatrimestre, temaId: tema.id, fecha, celdas });
         setMensaje({ ok: true, texto: "Notas del tema guardadas." });
         router.refresh();
-      } catch {
-        setMensaje({ ok: false, texto: "No se pudo guardar. Probá de nuevo." });
+      } catch (e) {
+        if (esFallaDeRed(e)) enCelu();
+        else setMensaje({ ok: false, texto: "No se pudo guardar. Probá de nuevo." });
       }
     });
   }

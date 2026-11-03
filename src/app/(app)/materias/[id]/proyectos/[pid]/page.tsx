@@ -4,6 +4,7 @@ import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { datosProyecto } from "@/lib/proyectos";
 import { EditorProyecto } from "./editor";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Proyecto(props: PageProps<"/materias/[id]/proyectos/[pid]">) {
   return (
@@ -21,7 +22,7 @@ async function Contenido({ params }: { params: Promise<{ id: string; pid: string
   const { p, cab, nomina } = d;
   return (
     <>
-      <Encabezado titulo={p.titulo} subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`} volver={`/materias/${id}/proyectos`} />
+      <Encabezado titulo={p.titulo} subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`} volver={`/materias/${id}/proyectos`} />
       <EditorProyecto
         asignacionId={Number(id)}
         proyecto={{

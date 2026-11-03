@@ -16,6 +16,7 @@ import {
   WidthType,
 } from "docx";
 import { numerarUnidades, renglones, type DatosPlanificacion } from "@/lib/planificacion";
+import { grupoDe } from "@/lib/grupo";
 
 const ANCHO = 15840 - 2 * 567; // carta apaisada con 1 cm de margen, en twips
 const FUENTE = "Cambria";
@@ -80,7 +81,7 @@ function cabecera(d: DatosPlanificacion) {
     [celda([parrafo("Planificación Anual", { negrita: true, centro: true })], { ancho: ANCHO, columnas: 5 })],
     [
       celda(dos("Docente:", cab.asig.profesor), { ancho: a[0] }),
-      celda(dos(`Curso: ${eps ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion}`, `Turno: ${cab.div.turno}`), { ancho: a[1] }),
+      celda(dos(`Curso: ${grupoDe(cab)}`, `Turno: ${cab.div.turno}`), { ancho: a[1] }),
       celda(dos("Carga horaria", contenido.cargaHoraria ?? ""), { ancho: a[2] }),
       celda(dos("Espacio Curricular:", cab.asig.materia), { ancho: a[3] }),
       celda(dos("Ciclo lectivo:", String(cab.curso.cicloLectivo)), { ancho: a[4] }),
@@ -117,7 +118,7 @@ export async function generarPlanificacionDocx(d: DatosPlanificacion) {
 
   const doc = new Document({
     creator: d.cab.asig.profesor,
-    title: `Planificación anual ${d.cab.asig.materia} ${d.cab.curso.anio} ${d.cab.div.seccion} ${d.cab.curso.cicloLectivo}`,
+    title: `Planificación anual ${d.cab.asig.materia} ${grupoDe(d.cab)} ${d.cab.curso.cicloLectivo}`,
     styles: { default: { document: { run: { font: FUENTE, size: TAM } } } },
     sections: [
       {

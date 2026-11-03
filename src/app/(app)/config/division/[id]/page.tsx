@@ -8,7 +8,8 @@ import { exigirDocente } from "@/lib/auth";
 import { PESOS_POR_DEFECTO } from "@/lib/calculos";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
 import { BotonBorrar } from "@/components/boton-borrar";
-import { actualizarInscripcion, agregarAlumnos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
+import { nombreGrupo, textosGrupo } from "@/lib/grupo";
+import { actualizarInscripcion, agregarAlumnos, asignarNivelATodos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
 
 export default function Division(props: PageProps<"/config/division/[id]">) {
   return (
@@ -30,6 +31,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
     .where(eq(divisiones.id, id));
   if (!d) notFound();
   const eps = d.modalidad.formato === "eps";
+  const t = textosGrupo(d.modalidad.formato);
   const [lista, materias, pesosRows] = await Promise.all([
     db
       .select({ insc: inscripciones, alumno: alumnos })
@@ -44,17 +46,17 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <Encabezado
-        titulo={`${eps ? "Nivel " : ""}${d.curso.anio} ${d.div.seccion} · ${d.div.turno}`}
+        titulo={`${nombreGrupo(d.modalidad.formato, d.curso.anio, d.div.seccion)} · ${d.div.turno}`}
         subtitulo={`${d.escuela.nombre} · ${d.curso.cicloLectivo}`}
         volver="/config"
       />
 
       <details className="tarjeta p-4">
-        <summary className="cursor-pointer text-sm font-semibold">Datos de la división</summary>
+        <summary className="cursor-pointer text-sm font-semibold">Datos de la {t.grupo}</summary>
         <form action={guardarDivision} className="mt-3 grid grid-cols-2 gap-2">
           <input type="hidden" name="id" value={id} />
           <label>
-            <span className="etiqueta">Sección</span>
+            <span className="etiqueta">{eps ? "Nombre" : "Sección"}</span>
             <input name="seccion" defaultValue={d.div.seccion} className="campo" />
           </label>
           <label>
@@ -66,7 +68,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
             </select>
           </label>
           <label className="col-span-2">
-            <span className="etiqueta">Preceptor/a</span>
+            <span className="etiqueta">{t.responsable}</span>
             <input name="preceptor" defaultValue={d.div.preceptor ?? ""} className="campo" />
           </label>
           <button className="boton-primario col-span-2">Guardar</button>
@@ -75,8 +77,8 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           <BotonBorrar
             accion={borrarElemento}
             campos={{ nivel: "division", id, volver: "/config" }}
-            texto="Borrar esta división"
-            aviso="Se borra la división con sus materias, alumnos, notas, asistencias y cierres."
+            texto={`Borrar esta ${t.grupo}`}
+            aviso={`Se borra la ${t.grupo} con sus materias, ${eps ? "estudiantes" : "alumnos"}, notas, asistencias y cierres.`}
           />
         </div>
       </details>
@@ -159,7 +161,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                   accion={borrarElemento}
                   campos={{ nivel: "materia", id: m.id }}
                   texto="Borrar esta materia"
-                  aviso={`Se borra ${m.materia} con sus temas, clases, notas, asistencias, cierres y eventos del calendario. Los alumnos de la división quedan.`}
+                  aviso={`Se borra ${m.materia} con sus temas, clases, notas, asistencias, cierres y eventos del calendario. ${eps ? "Los estudiantes de la comisión quedan." : "Los alumnos de la división quedan."}`}
                 />
               </div>
             </details>
@@ -176,7 +178,18 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         </details>
       </div>
 
-      <h2 className="titulo-seccion">Alumnos ({lista.filter((l) => l.insc.estado === "activo").length} activos)</h2>
+      <h2 className="titulo-seccion">{eps ? "Estudiantes" : "Alumnos"} ({lista.filter((l) => l.insc.estado === "activo").length} activos)</h2>
+      {eps && lista.some((l) => l.insc.estado === "activo") && (
+        <form action={asignarNivelATodos} className="tarjeta mb-2 flex flex-wrap items-center gap-2 p-3 text-sm">
+          <input type="hidden" name="divisionId" value={id} />
+          <span className="flex-1">Poner a todos los activos en</span>
+          <select name="nivel" defaultValue="4" className="rounded-lg border border-borde bg-papel px-2 py-1.5" aria-label="Nivel para todos">
+            {NIVELES_EPS.map((n) => <option key={n} value={n}>Nivel {n}</option>)}
+          </select>
+          <button className="boton px-3 py-1.5">Aplicar</button>
+          <span className="basis-full text-xs text-texto-2">Después podés cambiarle el nivel a cada uno abriéndolo en la lista.</span>
+        </form>
+      )}
       <ul className="tarjeta divide-y divide-borde">
         {lista.map(({ insc, alumno }) => (
           <li key={insc.id}>

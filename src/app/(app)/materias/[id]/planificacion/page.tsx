@@ -4,6 +4,7 @@ import { exigirDocente } from "@/lib/auth";
 import { listarMaterias } from "@/lib/consultas";
 import { datosPlanificacion } from "@/lib/planificacion";
 import { EditorPlanificacion } from "./editor";
+import { grupoDe, nombreGrupo } from "@/lib/grupo";
 
 export default function Planificacion(props: PageProps<"/materias/[id]/planificacion">) {
   return (
@@ -22,7 +23,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
     <>
       <Encabezado
         titulo="Planificación anual"
-        subtitulo={`${eps ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia} · ${cab.curso.cicloLectivo}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia} · ${cab.curso.cicloLectivo}`}
         volver={`/materias/${id}`}
       />
       <EditorPlanificacion
@@ -30,7 +31,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         datos={{
           escuela: cab.escuela.nombre,
           docente: cab.asig.profesor,
-          curso: `${eps ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion}`,
+          curso: `${grupoDe(cab)}`,
           turno: cab.div.turno,
           materia: cab.asig.materia,
           ciclo: cab.curso.cicloLectivo,
@@ -39,7 +40,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         unidades={unidades}
         otras={materias
           .filter((m) => m.id !== id)
-          .map((m) => ({ id: m.id, texto: `${m.anio} ${m.seccion} · ${m.materia} · ${m.escuela}` }))}
+          .map((m) => ({ id: m.id, texto: `${nombreGrupo(m.formato, m.anio, m.seccion)} · ${m.materia} · ${m.escuela}` }))}
       />
     </>
   );

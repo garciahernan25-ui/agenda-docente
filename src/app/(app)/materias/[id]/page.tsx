@@ -4,6 +4,7 @@ import { Cargando, Chip, Encabezado, Nota, PorcentajeAsistencia, Vacio } from "@
 import { exigirDocente } from "@/lib/auth";
 import { resumenMateria } from "@/lib/consultas";
 import { cuatrimestreDe, hoyAR } from "@/lib/fechas";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Materia(props: PageProps<"/materias/[id]">) {
   return (
@@ -35,7 +36,7 @@ async function Contenido({
   return (
     <>
       <Encabezado
-        titulo={`${cab.modalidad.formato === "eps" ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`}
+        titulo={`${grupoDe(cab)} · ${cab.asig.materia}`}
         subtitulo={`${cab.escuela.nombre} · ${cab.div.turno}`}
         volver="/"
       />

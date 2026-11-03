@@ -7,7 +7,7 @@ import { arbolCursos } from "@/lib/consultas";
 import { hoyAR } from "@/lib/fechas";
 import { salir } from "@/app/login/actions";
 import { BotonBorrar } from "@/components/boton-borrar";
-import { borrarElemento, crearCurso, crearDivision, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
+import { borrarElemento, crearComision, crearCurso, crearDivision, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
 
 export const metadata = { title: "Cursos · Agenda docente" };
 
@@ -115,18 +115,22 @@ async function Arbol() {
                   </Editar>
                 </div>
 
+                {m.formato === "eps" ? (
+                  <ComisionesEps escuelaId={e.id} cursos={e.cursos} anio={anio} />
+                ) : (
+                  <>
                 <ul className="mt-3 space-y-3">
                   {e.cursos.map((c) => (
                     <li key={c.id}>
                       <div className="flex flex-wrap items-start justify-between gap-x-3">
                         <p className="text-sm font-medium">
-                          {m.formato === "eps" ? `Nivel ${c.anio}` : `${c.anio} año`} · {c.cicloLectivo}
+                          {c.anio} año · {c.cicloLectivo}
                         </p>
                         <Editar>
                           <form action={editarCurso} className="grid grid-cols-2 gap-2">
                             <input type="hidden" name="id" value={c.id} />
                             <label>
-                              <span className="etiqueta">{m.formato === "eps" ? "Nivel" : "Año"}</span>
+                              <span className="etiqueta">Año</span>
                               <input name="anio" required defaultValue={c.anio} className="campo" />
                             </label>
                             <label>
@@ -183,11 +187,13 @@ async function Arbol() {
                 <Desplegable texto="+ Curso">
                   <form action={crearCurso} className="grid grid-cols-2 gap-2">
                     <input type="hidden" name="escuelaId" value={e.id} />
-                    <input name="anio" required placeholder={m.formato === "eps" ? "Nivel (III-IV, 1…)" : "Año (1°, 2°…)"} className="campo" />
+                    <input name="anio" required placeholder="Año (1°, 2°…)" className="campo" />
                     <input name="cicloLectivo" type="number" defaultValue={anio} className="campo" />
                     <button className="boton-primario col-span-2">Crear curso</button>
                   </form>
                 </Desplegable>
+                  </>
+                )}
               </div>
             ))}
             <Desplegable texto="+ Escuela">
@@ -232,5 +238,64 @@ function Editar({ children }: { children: React.ReactNode }) {
       <summary className="cursor-pointer list-none text-sm font-semibold text-texto-2">Editar</summary>
       <div className="mt-2 rounded-xl border border-borde bg-papel p-3">{children}</div>
     </details>
+  );
+}
+
+type CursoArbol = Awaited<ReturnType<typeof arbolCursos>>[number]["escuelas"][number]["cursos"][number];
+
+// En la EPS no hay cursos: las comisiones van directo en la escuela, agrupadas por ciclo lectivo
+function ComisionesEps({ escuelaId, cursos, anio }: { escuelaId: number; cursos: CursoArbol[]; anio: number }) {
+  const ciclos = [...new Set(cursos.map((c) => c.cicloLectivo))].sort((a, b) => b - a);
+  const delCiclo = (ciclo: number) => cursos.filter((c) => c.cicloLectivo === ciclo).flatMap((c) => c.divisiones);
+  const variosCiclos = ciclos.filter((c) => delCiclo(c).length > 0).length > 1;
+  const cantidadEsteAnio = delCiclo(anio).length;
+  return (
+    <>
+      <div className="mt-3 space-y-3">
+        {ciclos.map((ciclo) => {
+          const comisiones = delCiclo(ciclo);
+          if (!comisiones.length) return null;
+          return (
+            <div key={ciclo}>
+              {(variosCiclos || ciclo !== anio) && <p className="mb-1.5 text-xs font-semibold text-texto-2">Ciclo {ciclo}</p>}
+              <div className="flex flex-wrap gap-2">
+                {comisiones.map((d) => (
+                  <Link key={d.id} href={`/config/division/${d.id}`} className="rounded-lg border border-borde px-3 py-1.5 text-sm">
+                    {d.seccion} <span className="text-texto-2">· {d.turno}</span>
+                    {d.materias.length > 0 && <span className="text-texto-2"> · {d.materias.map((a) => a.materia).join(", ")}</span>}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        {cursos.some((c) => c.divisiones.length > 0) && (
+          <p className="text-[11px] text-texto-2">Tocá la comisión para cambiar sus datos, materias o estudiantes, o para borrarla.</p>
+        )}
+      </div>
+      <Desplegable texto="+ Comisión">
+        <form action={crearComision} className="grid grid-cols-2 gap-2">
+          <input type="hidden" name="escuelaId" value={escuelaId} />
+          <label className="col-span-2">
+            <span className="etiqueta">Nombre</span>
+            <input name="seccion" required defaultValue={`Comisión ${cantidadEsteAnio + 1}`} className="campo" />
+          </label>
+          <label>
+            <span className="etiqueta">Turno</span>
+            <select name="turno" className="campo" defaultValue="Mañana">
+              {TURNOS.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="etiqueta">Ciclo lectivo</span>
+            <input name="cicloLectivo" type="number" defaultValue={anio} className="campo" />
+          </label>
+          <input name="preceptor" placeholder="Coordinador/a" className="campo col-span-2" />
+          <button className="boton-primario col-span-2">Crear comisión</button>
+        </form>
+      </Desplegable>
+    </>
   );
 }

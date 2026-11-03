@@ -10,6 +10,7 @@ import { cabecera, pesosDe, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, fechaCortaMayus, fechaMini, hoyAR } from "@/lib/fechas";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
 import { NotaEditable } from "./borrar";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Ficha(props: PageProps<"/materias/[id]/alumnos/[insc]">) {
   return (
@@ -64,7 +65,7 @@ async function Contenido({
     <>
       <Encabezado
         titulo={`${fila.alumno.apellido}, ${fila.alumno.nombre}`}
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia} · ${c}° cuatrimestre${fila.insc.estado === "baja" ? " · baja" : ""}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia} · ${c}° cuatrimestre${fila.insc.estado === "baja" ? " · baja" : ""}`}
         volver={`/materias/${id}?c=${c}`}
       />
 

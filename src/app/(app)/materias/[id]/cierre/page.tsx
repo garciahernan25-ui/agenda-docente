@@ -8,6 +8,7 @@ import { sugerirValoracion } from "@/lib/calculos";
 import { resumenMateria } from "@/lib/consultas";
 import { cuatrimestreDe, hoyAR } from "@/lib/fechas";
 import { EditorCierre } from "./editor";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Cierre(props: PageProps<"/materias/[id]/cierre">) {
   return (
@@ -41,7 +42,7 @@ async function Contenido({
     <>
       <Encabezado
         titulo={`Cierre del ${c}° cuatrimestre`}
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`}
         volver={`/materias/${id}?c=${c}`}
       />
       <EditorCierre

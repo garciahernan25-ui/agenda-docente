@@ -5,6 +5,7 @@ import { exigirDocente } from "@/lib/auth";
 import { cabecera } from "@/lib/planillas";
 import { leerQuizzes, planQuizzes } from "@/lib/quizzes";
 import { PanelQuizzes } from "./panel";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Quizzes(props: PageProps<"/materias/[id]/quizzes">) {
   return (
@@ -28,7 +29,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
     const cab = await cabecera(id);
     return (
       <>
-        <Encabezado titulo="Notas de quizzes" subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`} volver={`/materias/${id}`} />
+        <Encabezado titulo="Notas de quizzes" subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`} volver={`/materias/${id}`} />
         <p className="tarjeta p-4 text-sm">{MOTIVO[lectura.motivo]}</p>
       </>
     );
@@ -40,7 +41,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <Encabezado titulo="Notas de quizzes" subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`} volver={`/materias/${id}`} />
+      <Encabezado titulo="Notas de quizzes" subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`} volver={`/materias/${id}`} />
 
       <h2 className="titulo-seccion">Temas con quiz del mismo nombre</h2>
       {plan.temasConQuiz.length === 0 ? (

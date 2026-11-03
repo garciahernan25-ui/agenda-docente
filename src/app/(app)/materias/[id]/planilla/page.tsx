@@ -3,6 +3,7 @@ import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { filasPlanilla } from "@/lib/planillas";
 import { EditorPlanilla } from "./editor";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Planilla(props: PageProps<"/materias/[id]/planilla">) {
   return (
@@ -22,7 +23,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <div className="mx-auto max-w-[1400px]">
       <Encabezado
         titulo="Planilla de notas"
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia} · ${cab.escuela.nombre} · ${cab.curso.cicloLectivo}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia} · ${cab.escuela.nombre} · ${cab.curso.cicloLectivo}`}
         volver={`/materias/${id}`}
       />
       <EditorPlanilla asignacionId={id} filas={filas} clases={clases} />

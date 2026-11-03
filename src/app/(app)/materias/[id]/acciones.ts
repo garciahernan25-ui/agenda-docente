@@ -6,19 +6,17 @@ import { z } from "zod";
 import { db } from "@/db";
 import {
   asignaciones,
-  asistencias,
   CATEGORIAS,
   cierres,
   clases,
   ESTADOS_ASISTENCIA,
-  inscripciones,
   notas,
   planFormativo,
   temas,
   VALORACIONES,
 } from "@/db/schema";
 import { exigirDocente } from "@/lib/auth";
-import { cuatrimestreDe } from "@/lib/fechas";
+import { aplicarAsistencia, validarInscripciones } from "@/lib/sin-conexion";
 
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -35,27 +33,7 @@ const entradaAsistencia = z.object({
 export async function guardarAsistencia(entrada: z.input<typeof entradaAsistencia>) {
   await exigirDocente();
   const d = entradaAsistencia.parse(entrada);
-  await validarInscripciones(d.asignacionId, d.registros.map((r) => r.inscripcionId));
-
-  const [clase] = await db
-    .insert(clases)
-    .values({
-      asignacionId: d.asignacionId,
-      fecha: d.fecha,
-      cuatrimestre: cuatrimestreDe(d.fecha),
-      dictada: d.dictada,
-      temaId: d.temaId ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [clases.asignacionId, clases.fecha],
-      set: { dictada: d.dictada, temaId: d.temaId ?? null },
-    })
-    .returning();
-
-  await db.delete(asistencias).where(eq(asistencias.claseId, clase.id));
-  if (d.dictada && d.registros.length) {
-    await db.insert(asistencias).values(d.registros.map((r) => ({ ...r, claseId: clase.id })));
-  }
+  await aplicarAsistencia(d);
   revalidatePath(`/materias/${d.asignacionId}`, "layout");
   return { ok: true as const };
 }
@@ -281,19 +259,6 @@ export async function guardarCierre(entrada: z.input<typeof entradaCierre>) {
   }
   revalidatePath(`/materias/${d.asignacionId}`, "layout");
   return { ok: true as const };
-}
-
-// Que los alumnos pertenezcan a la división de esa materia
-async function validarInscripciones(asignacionId: number, ids: number[]) {
-  if (!ids.length) return;
-  const [a] = await db.select().from(asignaciones).where(eq(asignaciones.id, asignacionId));
-  if (!a) throw new Error("Materia inexistente");
-  const validas = new Set(
-    (await db.select({ id: inscripciones.id }).from(inscripciones).where(eq(inscripciones.divisionId, a.divisionId))).map(
-      (r) => r.id,
-    ),
-  );
-  if (ids.some((i) => !validas.has(i))) throw new Error("Hay alumnos que no son de este curso");
 }
 
 /* ---------------- EPS ---------------- */

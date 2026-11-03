@@ -10,6 +10,7 @@ import { sumarDias } from "@/lib/calendario";
 import { fechaCortaMayus, hoyAR, MESES_LARGOS } from "@/lib/fechas";
 import { COLOR_TIPO_EVENTO, NOMBRE_TIPO_EVENTO, PUNTO_TIPO_EVENTO } from "@/lib/textos";
 import { AccionesEvento, FormEvento } from "./cliente";
+import { nombreGrupo } from "@/lib/grupo";
 
 export const metadata = { title: "Calendario · Agenda docente" };
 
@@ -109,7 +110,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
                       <p className="text-xs text-texto-2">
                         {[
                           o.horaInicio && `${o.horaInicio}${o.horaFin ? `–${o.horaFin}` : ""}`,
-                          materia && `${materia.anio} ${materia.seccion} ${materia.materia}`,
+                          materia && `${nombreGrupo(materia.formato, materia.anio, materia.seccion)} ${materia.materia}`,
                           escuela?.nombre,
                           o.evento.repeticion !== "ninguna" && `se repite (${o.evento.repeticion})`,
                         ]
@@ -133,7 +134,7 @@ async function Contenido({ searchParams }: { searchParams: Promise<Record<string
       <FormEvento
         fechaInicial={dia ?? (mes === hoy.slice(0, 7) ? hoy : primero)}
         hastaSugerido={sumarDias(dia ?? hoy, 60)}
-        materias={materias.map((x) => ({ id: x.id, nombre: `${x.anio} ${x.seccion} · ${x.materia} (${x.escuela})` }))}
+        materias={materias.map((x) => ({ id: x.id, nombre: `${nombreGrupo(x.formato, x.anio, x.seccion)} · ${x.materia} (${x.escuela})` }))}
         escuelas={escs.map((e) => ({ id: e.id, nombre: e.nombre }))}
       />
     </div>

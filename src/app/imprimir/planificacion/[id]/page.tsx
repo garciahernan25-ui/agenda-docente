@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { exigirDocente } from "@/lib/auth";
 import { datosPlanificacion, numerarUnidades, renglones, type DatosPlanificacion } from "@/lib/planificacion";
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { grupoDe } from "@/lib/grupo";
 
 export const metadata = { title: "Planificación anual" };
 
@@ -65,7 +66,7 @@ function Cabecera({ d, escuela = false }: { d: DatosPlanificacion; escuela?: boo
           <tr>
             <td className={`${celda} w-[20%]`}>Docente:<br />{cab.asig.profesor}</td>
             <td className={`${celda} w-[14%]`}>
-              Curso: {eps ? "Nivel " : ""}{cab.curso.anio} {cab.div.seccion}<br />Turno: {cab.div.turno}
+              {eps ? "Comisión" : "Curso"}: {grupoDe(cab)}<br />Turno: {cab.div.turno}
             </td>
             <td className={`${celda} w-[16%]`}>Carga horaria<br />{contenido.cargaHoraria}</td>
             <td className={`${celda} w-[30%]`}>Espacio Curricular:<br />{cab.asig.materia}</td>

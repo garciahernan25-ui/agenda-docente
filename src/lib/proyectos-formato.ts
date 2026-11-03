@@ -2,6 +2,7 @@
 import type { DatosProyecto } from "./proyectos";
 import { fechaLarga } from "./fechas";
 import { partesProyecto, TITULO_DOCUMENTO } from "./proyectos-textos";
+import { grupoDe } from "@/lib/grupo";
 
 export function renglonesProyecto(texto: string | undefined): string[] {
   return (texto ?? "")
@@ -22,7 +23,7 @@ export function armarProyecto(d: DatosProyecto) {
     datos: [
       ["Docente", cab.asig.profesor],
       ["Espacio curricular", cab.asig.materia],
-      ["Curso y turno", `${eps ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion} · ${cab.div.turno}`],
+      ["Curso y turno", `${grupoDe(cab)} · ${cab.div.turno}`],
       ["Estudiantes", String(nomina.length)],
       ["Fecha", p.fecha ? fechaLarga(p.fecha) : ""],
       ["Horario", horario],

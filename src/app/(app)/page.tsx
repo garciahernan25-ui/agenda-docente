@@ -6,6 +6,7 @@ import { eventosEnRango, listarMaterias } from "@/lib/consultas";
 import { sumarDias } from "@/lib/calendario";
 import { fechaCortaMayus, hoyAR } from "@/lib/fechas";
 import { COLOR_TIPO_EVENTO, NOMBRE_TIPO_EVENTO } from "@/lib/textos";
+import { nombreGrupo } from "@/lib/grupo";
 
 export default function Inicio() {
   return (
@@ -77,7 +78,7 @@ async function Contenido() {
               <li key={m.id} className="tarjeta flex items-center gap-3 p-3 pl-4">
                 <Link href={`/materias/${m.id}`} className="min-w-0 flex-1">
                   <p className="font-semibold">
-                    {m.anio} {m.seccion} <span className="font-normal">· {m.materia}</span>
+                    {nombreGrupo(m.formato, m.anio, m.seccion)} <span className="font-normal">· {m.materia}</span>
                   </p>
                   <p className="text-xs text-texto-2">{m.turno}</p>
                 </Link>

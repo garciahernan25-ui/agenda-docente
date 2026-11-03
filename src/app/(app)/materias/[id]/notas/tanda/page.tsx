@@ -7,6 +7,7 @@ import { exigirDocente } from "@/lib/auth";
 import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
 import { NOMBRE_CATEGORIA } from "@/lib/textos";
 import { EditorTanda } from "./editor";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Tanda(props: PageProps<"/materias/[id]/notas/tanda">) {
   return (
@@ -62,7 +63,7 @@ async function Contenido({
     <>
       <Encabezado
         titulo="Corregir notas"
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${NOMBRE_CATEGORIA[categoria]} · ${c}° cuatrimestre`}
+        subtitulo={`${grupoDe(cab)} · ${NOMBRE_CATEGORIA[categoria]} · ${c}° cuatrimestre`}
         volver={volver}
       />
       <EditorTanda

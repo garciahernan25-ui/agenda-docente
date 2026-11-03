@@ -5,15 +5,20 @@ import { db } from "@/db";
 import { cierres, notas, planFormativo, temas } from "@/db/schema";
 import { parcialesParaPlanilla } from "./calculos";
 import { filasPlanilla, listaAlumnos } from "./planillas";
+import { rangoNiveles } from "./grupo";
 
 export async function datosRite(asignacionId: number) {
   const { cab, filas } = await filasPlanilla(asignacionId);
+  const lista = await listaAlumnos(cab.div.id);
+  // "IV", "I-IV"… con los niveles de los estudiantes activos (si nadie tiene nivel, lo que diga el curso)
+  const nivel = rangoNiveles(lista.filter(({ insc }) => insc.estado === "activo").map(({ insc }) => insc.nivel)) ?? (cab.curso.anio === "EPS" ? "" : cab.curso.anio);
   const obs = await db
     .select({ inscripcionId: cierres.inscripcionId, observacionRite: cierres.observacionRite })
     .from(cierres)
     .where(eq(cierres.asignacionId, asignacionId));
   return {
     cab,
+    nivel,
     filas: filas
       .filter((f) => !f.baja)
       .map((f) => ({

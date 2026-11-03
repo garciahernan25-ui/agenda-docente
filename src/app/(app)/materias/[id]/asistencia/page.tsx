@@ -8,6 +8,7 @@ import { cabecera, eventosEnRango, listaAlumnos, temasDe } from "@/lib/consultas
 import { esDiaSinClases } from "@/lib/calendario";
 import { cuatrimestreDe, hoyAR } from "@/lib/fechas";
 import { TomarAsistencia } from "./tomar";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Asistencia(props: PageProps<"/materias/[id]/asistencia">) {
   return (
@@ -45,7 +46,7 @@ async function Contenido({
     <>
       <Encabezado
         titulo="Asistencia"
-        subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`}
         volver={`/materias/${id}`}
       />
       <TomarAsistencia

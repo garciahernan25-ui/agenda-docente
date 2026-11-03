@@ -29,6 +29,7 @@ export async function listarMaterias() {
       escuelaId: escuelas.id,
       escuela: escuelas.nombre,
       modalidad: modalidades.nombre,
+      formato: modalidades.formato,
       anio: cursos.anio,
       ciclo: cursos.cicloLectivo,
       divisionId: divisiones.id,

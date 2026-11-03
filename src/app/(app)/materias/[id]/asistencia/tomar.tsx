@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import type { EstadoAsistencia } from "@/db/schema";
 import { resumenAsistencia } from "@/lib/calculos";
 import { fechaCortaMayus } from "@/lib/fechas";
+import { encolar, esFallaDeRed } from "@/lib/pendientes";
 import { guardarAsistencia } from "../acciones";
 
 type Alumno = {
@@ -45,7 +46,7 @@ export function TomarAsistencia(props: {
   );
   const [dictada, setDictada] = useState(props.dictadaInicial);
   const [tema, setTema] = useState<number | null>(props.temaInicial);
-  const [guardado, setGuardado] = useState<"no" | "si" | "error">(props.yaCargada ? "si" : "no");
+  const [guardado, setGuardado] = useState<"no" | "si" | "error" | "celu">(props.yaCargada ? "si" : "no");
   const [pendiente, iniciar] = useTransition();
 
   const conteo = useMemo(() => resumenAsistencia(Object.values(estados)), [estados]);
@@ -56,19 +57,26 @@ export function TomarAsistencia(props: {
   }
 
   function guardar() {
+    const datos = {
+      asignacionId: props.asignacionId,
+      fecha: props.fecha,
+      dictada,
+      temaId: tema,
+      registros: Object.entries(estados).map(([id, estado]) => ({ inscripcionId: Number(id), estado })),
+    };
+    const enCelu = () => {
+      encolar({ tipo: "asistencia", descripcion: `Asistencia del ${fechaCortaMayus(props.fecha)}`, ...datos });
+      setGuardado("celu");
+    };
+    if (!navigator.onLine) return enCelu();
     iniciar(async () => {
       try {
-        await guardarAsistencia({
-          asignacionId: props.asignacionId,
-          fecha: props.fecha,
-          dictada,
-          temaId: tema,
-          registros: Object.entries(estados).map(([id, estado]) => ({ inscripcionId: Number(id), estado })),
-        });
+        await guardarAsistencia(datos);
         setGuardado("si");
         router.refresh();
-      } catch {
-        setGuardado("error");
+      } catch (e) {
+        if (esFallaDeRed(e)) enCelu();
+        else setGuardado("error");
       }
     });
   }
@@ -135,9 +143,10 @@ export function TomarAsistencia(props: {
 
       <div className="sticky bottom-20 z-10">
         <button onClick={guardar} disabled={pendiente} className="boton-primario w-full py-3.5 text-base shadow-lg">
-          {pendiente ? "Guardando…" : guardado === "si" ? "Guardado ✓" : props.yaCargada ? "Guardar cambios" : "Guardar asistencia"}
+          {pendiente ? "Guardando…" : guardado === "si" ? "Guardado ✓" : guardado === "celu" ? "Guardada en el celu ✓" : props.yaCargada ? "Guardar cambios" : "Guardar asistencia"}
         </button>
         {guardado === "error" && <p className="mt-1 text-center text-sm text-ausente">No se pudo guardar. Probá de nuevo.</p>}
+        {guardado === "celu" && <p className="mt-1 text-center text-sm text-tarde">Sin señal: quedó guardada en el celu y se manda sola cuando vuelva internet.</p>}
       </div>
 
       {props.recientes.length > 0 && (

@@ -7,6 +7,7 @@ import { exigirDocente } from "@/lib/auth";
 import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, hoyAR } from "@/lib/fechas";
 import { GrillaTema } from "./grilla";
+import { grupoDe } from "@/lib/grupo";
 
 export default function NotasPorTema(props: PageProps<"/materias/[id]/temas">) {
   return (
@@ -43,7 +44,7 @@ async function Contenido({
       <div className="mx-auto max-w-5xl">
         <Encabezado
           titulo="Notas por tema"
-          subtitulo={`${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia} · ${c}° cuatrimestre`}
+          subtitulo={`${grupoDe(cab)} · ${cab.asig.materia} · ${c}° cuatrimestre`}
           volver={`/materias/${id}?c=${c}`}
         />
         <GrillaTema

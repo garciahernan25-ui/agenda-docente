@@ -2,22 +2,67 @@
 <html lang="es-AR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sin conexión · Agenda docente</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#faf8f3">
+<title>Agenda docente · sin señal</title>
+<link rel="icon" href="/icons/icon-192.png">
 <style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, sans-serif; background: #faf8f3; color: #1c1917; text-align: center; padding: 24px; box-sizing: border-box; }
-  @media (prefers-color-scheme: dark) { body { background: #141413; color: #ececea; } }
-  img { width: 72px; height: 72px; }
-  button { margin-top: 16px; font: inherit; font-weight: 600; padding: 10px 20px; border-radius: 12px; border: 0; background: #1e2a78; color: #fff; }
+  :root {
+    color-scheme: light dark;
+    --papel: #faf8f3; --hoja: #ffffff; --tinta: #1e2a78; --tinta-suave: #e8ebfb; --texto: #1c1917; --texto-2: #6b6760; --borde: #e7e3da;
+    --p: #15803d; --p-bg: #dcfce7; --a: #b91c1c; --a-bg: #fee2e2; --t: #b45309; --t-bg: #fef3c7; --j: #475569; --j-bg: #e2e8f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --papel: #141413; --hoja: #1d1d1b; --tinta: #9fb0ff; --tinta-suave: #262c4d; --texto: #ececea; --texto-2: #a3a29c; --borde: #34332f;
+      --p: #4ade80; --p-bg: #14361f; --a: #f87171; --a-bg: #3b1515; --t: #fbbf24; --t-bg: #3a2a0a; --j: #cbd5e1; --j-bg: #273140;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--papel); color: var(--texto); -webkit-tap-highlight-color: transparent; }
+  main { max-width: 36rem; margin: 0 auto; padding: 0 16px 120px; }
+  .aviso { margin: 0 -16px; padding: 6px 16px; text-align: center; font-size: 12px; font-weight: 600; background: var(--j-bg); color: var(--j); }
+  .aviso.ok { background: var(--p-bg); color: var(--p); }
+  header { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--borde); margin-bottom: 16px; }
+  header h1 { font-size: 17px; margin: 0; }
+  header p { margin: 0; font-size: 12px; color: var(--texto-2); }
+  .volver { border: 0; background: none; color: var(--tinta); font-size: 22px; padding: 0 6px 0 0; cursor: pointer; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-2); margin: 24px 0 8px; }
+  .tarjeta { background: var(--hoja); border: 1px solid var(--borde); border-radius: 16px; }
+  .fila { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--borde); }
+  .fila:first-child { border-top: 0; }
+  .crece { flex: 1; min-width: 0; }
+  .chico { font-size: 12px; color: var(--texto-2); }
+  button, select, input { font: inherit; color: inherit; }
+  .boton { border: 1px solid var(--borde); background: var(--hoja); border-radius: 12px; padding: 10px 14px; font-weight: 600; cursor: pointer; text-align: center; }
+  .primario { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+  .grilla2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .campo { width: 100%; border: 1px solid var(--borde); background: var(--hoja); border-radius: 12px; padding: 10px 12px; }
+  .estado { width: 46px; height: 40px; border-radius: 10px; border: 0; font-weight: 700; cursor: pointer; }
+  .P { background: var(--p-bg); color: var(--p); } .A { background: var(--a-bg); color: var(--a); } .T { background: var(--t-bg); color: var(--t); } .J { background: var(--j-bg); color: var(--j); }
+  .num { width: 20px; text-align: right; color: var(--texto-2); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .fijo { position: sticky; bottom: 16px; margin-top: 16px; }
+  .fijo .boton { width: 100%; padding: 14px; font-size: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+  .msj { text-align: center; font-size: 14px; margin-top: 8px; }
+  .msj.ok { color: var(--p); } .msj.mal { color: var(--a); }
+  .fijo .msj:not(:empty) { background: var(--hoja); border: 1px solid var(--borde); border-radius: 10px; padding: 6px 10px; }
+  .tabla { overflow-x: auto; }
+  table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+  th, td { padding: 6px 4px; border-top: 1px solid var(--borde); text-align: center; }
+  th { font-size: 11px; color: var(--texto-2); font-weight: 600; }
+  td.nombre, th.nombre { text-align: left; position: sticky; left: 0; background: var(--hoja); min-width: 120px; max-width: 150px; padding-left: 10px; }
+  td input { width: 46px; text-align: center; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 2px; background: var(--papel); font-weight: 600; }
+  td input.cambio { border-color: var(--tinta); background: var(--tinta-suave); }
+  td input.mal { border-color: var(--a); }
+  .seg { display: flex; border: 1px solid var(--borde); border-radius: 12px; padding: 2px; background: var(--hoja); }
+  .seg button { flex: 1; border: 0; background: none; border-radius: 10px; padding: 6px; font-weight: 600; color: var(--texto-2); cursor: pointer; }
+  .seg button.si { background: var(--tinta); color: var(--papel); }
+  label.chk { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; font-size: 14px; font-weight: 500; }
+  .vacio { padding: 16px; font-size: 14px; color: var(--texto-2); }
 </style>
 </head>
 <body>
-  <div>
-    <img src="/icons/icon-192.png" alt="">
-    <h1 style="font-size:20px">Sin conexión</h1>
-    <p>La agenda necesita internet para leer y guardar las notas.<br>Cuando vuelva la señal, tocá el botón.</p>
-    <button onclick="location.reload()">Reintentar</button>
-  </div>
+<main id="app"><p class="vacio">Cargando…</p></main>
+<script src="/sin-conexion.js"></script>
 </body>
 </html>

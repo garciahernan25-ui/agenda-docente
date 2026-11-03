@@ -8,6 +8,7 @@ import { cabecera } from "@/lib/planillas";
 import { proyectosDe } from "@/lib/proyectos";
 import { NOMBRE_TIPO_PROYECTO } from "@/lib/proyectos-textos";
 import { crearProyecto } from "./acciones";
+import { grupoDe } from "@/lib/grupo";
 
 export default function Proyectos(props: PageProps<"/materias/[id]/proyectos">) {
   return (
@@ -26,7 +27,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
     <>
       <Encabezado
         titulo="Proyectos"
-        subtitulo={`${eps ? "Nivel " : ""}${cab.curso.anio} ${cab.div.seccion} · ${cab.asig.materia}`}
+        subtitulo={`${grupoDe(cab)} · ${cab.asig.materia}`}
         volver={`/materias/${id}`}
       />
 

@@ -70,6 +70,28 @@ export async function crearDivision(form: FormData) {
   redirect(`/config/division/${div.id}`);
 }
 
+// EPS: la comisión cuelga directo de la escuela. Por dentro usa un "curso" por ciclo lectivo, que se crea solo.
+export async function crearComision(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, {
+    escuelaId: entero,
+    cicloLectivo: z.coerce.number().int().min(2020).max(2100),
+    seccion: texto,
+    turno: z.enum(TURNOS),
+    preceptor: opcional,
+  });
+  const [existente] = await db
+    .select({ id: cursos.id })
+    .from(cursos)
+    .where(and(eq(cursos.escuelaId, d.escuelaId), eq(cursos.cicloLectivo, d.cicloLectivo)))
+    .orderBy(asc(cursos.id))
+    .limit(1);
+  const cursoId = existente?.id ?? (await db.insert(cursos).values({ escuelaId: d.escuelaId, anio: "EPS", cicloLectivo: d.cicloLectivo }).returning())[0].id;
+  const [div] = await db.insert(divisiones).values({ cursoId, seccion: d.seccion, turno: d.turno, preceptor: d.preceptor }).returning();
+  listo();
+  redirect(`/config/division/${div.id}`);
+}
+
 export async function crearMateria(form: FormData) {
   await exigirDocente();
   const d = datos(form, { divisionId: entero, materia: texto, profesor: texto });
@@ -141,6 +163,17 @@ export async function actualizarInscripcion(form: FormData) {
     const [fila] = await db.select({ alumnoId: inscripciones.alumnoId }).from(inscripciones).where(eq(inscripciones.id, d.id));
     if (fila) await db.update(alumnos).set({ apellido: apellido.toUpperCase(), nombre: nombre ?? "" }).where(eq(alumnos.id, fila.alumnoId));
   }
+  listo();
+}
+
+// EPS: el mismo nivel para todos los estudiantes activos de la comisión
+export async function asignarNivelATodos(form: FormData) {
+  await exigirDocente();
+  const d = datos(form, { divisionId: entero, nivel: z.coerce.number().int().min(1).max(4) });
+  await db
+    .update(inscripciones)
+    .set({ nivel: d.nivel })
+    .where(and(eq(inscripciones.divisionId, d.divisionId), eq(inscripciones.estado, "activo")));
   listo();
 }
 
