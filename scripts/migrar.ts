@@ -2,7 +2,8 @@
  * Aplica las migraciones a la base que indiquen TURSO_DATABASE_URL / TURSO_AUTH_TOKEN
  * (o a local.db si no están) y muestra el resultado o el error completo.
  * Uso: npm run db:migrar
- *      npm run db:migrar:turso   (te pide la dirección y el token de Turso en la pantalla; no se guardan en ningún lado)
+ *      npm run db:migrar:turso                       (tu base; te pide el token en pantalla, no se guarda en ningún lado)
+ *      npm run db:migrar:turso -- libsql://otra-base   (otra base, por ejemplo la agenda de otra docente)
  */
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -35,9 +36,15 @@ function preguntar(texto: string, oculto = false): Promise<string> {
 
 async function main() {
   if (process.argv.includes("--turso")) {
-    const u = await preguntar(`Dirección de la base (Enter = la tuya, agenda-docente): `);
-    url = u || TU_BASE;
-    authToken = await preguntar("Pegá el token de Turso (clic derecho para pegar) y apretá Enter: ", true);
+    // La dirección va escrita en el comando (npm run db:migrar:turso -- libsql://...); sin nada, la tuya
+    const arg = process.argv.slice(2).find((a) => a.startsWith("libsql://"));
+    url = arg || TU_BASE;
+    console.log(`Base elegida: ${url}`);
+    // En Windows a veces llega un Enter suelto: si la respuesta viene vacía, se vuelve a preguntar
+    authToken = "";
+    for (let i = 0; i < 3 && !authToken; i++) {
+      authToken = await preguntar("Pegá el token de Turso (clic derecho para pegar) y apretá Enter: ", true);
+    }
   }
   const remota = url.startsWith("libsql://");
   console.log(`Base: ${remota ? url : "local.db (tu compu)"}`);

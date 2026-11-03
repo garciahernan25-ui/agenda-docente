@@ -70,26 +70,38 @@ export async function crearDivision(form: FormData) {
   redirect(`/config/division/${div.id}`);
 }
 
-// EPS: la comisión cuelga directo de la escuela. Por dentro usa un "curso" por ciclo lectivo, que se crea solo.
-export async function crearComision(form: FormData) {
+// Un grupo nuevo en una escuela: en secundaria año + división ("5°" + "A"); en la EPS, una comisión.
+// Por dentro usa un "curso" por año y ciclo lectivo, que se busca o se crea solo.
+export async function crearGrupo(form: FormData) {
   await exigirDocente();
   const d = datos(form, {
     escuelaId: entero,
+    anio: z.string().trim().optional(),
     cicloLectivo: z.coerce.number().int().min(2020).max(2100),
     seccion: texto,
     turno: z.enum(TURNOS),
     preceptor: opcional,
   });
-  const [existente] = await db
-    .select({ id: cursos.id })
-    .from(cursos)
-    .where(and(eq(cursos.escuelaId, d.escuelaId), eq(cursos.cicloLectivo, d.cicloLectivo)))
-    .orderBy(asc(cursos.id))
-    .limit(1);
-  const cursoId = existente?.id ?? (await db.insert(cursos).values({ escuelaId: d.escuelaId, anio: "EPS", cicloLectivo: d.cicloLectivo }).returning())[0].id;
+  const cursoId = await cursoPara(d.escuelaId, d.anio || "EPS", d.cicloLectivo);
   const [div] = await db.insert(divisiones).values({ cursoId, seccion: d.seccion, turno: d.turno, preceptor: d.preceptor }).returning();
   listo();
   redirect(`/config/division/${div.id}`);
+}
+
+async function cursoPara(escuelaId: number, anio: string, cicloLectivo: number) {
+  const [existente] = await db
+    .select({ id: cursos.id })
+    .from(cursos)
+    .where(and(eq(cursos.escuelaId, escuelaId), eq(cursos.anio, anio), eq(cursos.cicloLectivo, cicloLectivo)))
+    .orderBy(asc(cursos.id))
+    .limit(1);
+  return existente?.id ?? (await db.insert(cursos).values({ escuelaId, anio, cicloLectivo }).returning())[0].id;
+}
+
+// Si un curso quedó sin divisiones, se borra (no tiene nada adentro)
+async function borrarCursoVacio(cursoId: number) {
+  const [hay] = await db.select({ id: divisiones.id }).from(divisiones).where(eq(divisiones.cursoId, cursoId)).limit(1);
+  if (!hay) await db.delete(cursos).where(eq(cursos.id, cursoId));
 }
 
 export async function crearMateria(form: FormData) {
@@ -220,8 +232,22 @@ export async function guardarMateria(form: FormData) {
 
 export async function guardarDivision(form: FormData) {
   await exigirDocente();
-  const d = datos(form, { id: entero, seccion: texto, turno: z.enum(TURNOS), preceptor: opcional });
-  await db.update(divisiones).set(d).where(eq(divisiones.id, d.id));
+  const d = datos(form, { id: entero, seccion: texto, turno: z.enum(TURNOS), preceptor: opcional, anio: z.string().trim().optional() });
+  const { anio, ...resto } = d;
+  await db.update(divisiones).set(resto).where(eq(divisiones.id, d.id));
+  // Cambió el año (ej. lo cargaste en 4° y era 5°): pasa al curso de ese año
+  if (anio) {
+    const [actual] = await db
+      .select({ cursoId: cursos.id, anio: cursos.anio, escuelaId: cursos.escuelaId, ciclo: cursos.cicloLectivo })
+      .from(divisiones)
+      .innerJoin(cursos, eq(divisiones.cursoId, cursos.id))
+      .where(eq(divisiones.id, d.id));
+    if (actual && actual.anio !== anio) {
+      const nuevo = await cursoPara(actual.escuelaId, anio, actual.ciclo);
+      await db.update(divisiones).set({ cursoId: nuevo }).where(eq(divisiones.id, d.id));
+      await borrarCursoVacio(actual.cursoId);
+    }
+  }
   listo();
 }
 
@@ -259,7 +285,9 @@ const NIVELES = ["modalidad", "escuela", "curso", "division", "materia"] as cons
 export async function borrarElemento(form: FormData) {
   await exigirDocente();
   const d = datos(form, { nivel: z.enum(NIVELES), id: entero, volver: z.string().startsWith("/").optional() });
+  const [div] = d.nivel === "division" ? await db.select({ cursoId: divisiones.cursoId }).from(divisiones).where(eq(divisiones.id, d.id)) : [];
   await borrarEnCascada(d.nivel, d.id);
+  if (div) await borrarCursoVacio(div.cursoId);
   listo();
   if (d.volver) redirect(d.volver);
 }

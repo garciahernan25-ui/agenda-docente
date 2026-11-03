@@ -7,7 +7,7 @@ import { arbolCursos } from "@/lib/consultas";
 import { hoyAR } from "@/lib/fechas";
 import { salir } from "@/app/login/actions";
 import { BotonBorrar } from "@/components/boton-borrar";
-import { borrarElemento, crearComision, crearCurso, crearDivision, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
+import { borrarElemento, crearGrupo, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
 import { BotonGuardar, FormGuardar } from "@/components/form-guardar";
 
 export const metadata = { title: "Cursos · Agenda docente" };
@@ -116,85 +116,7 @@ async function Arbol() {
                   </Editar>
                 </div>
 
-                {m.formato === "eps" ? (
-                  <ComisionesEps escuelaId={e.id} cursos={e.cursos} anio={anio} />
-                ) : (
-                  <>
-                <ul className="mt-3 space-y-3">
-                  {e.cursos.map((c) => (
-                    <li key={c.id}>
-                      <div className="flex flex-wrap items-start justify-between gap-x-3">
-                        <p className="text-sm font-medium">
-                          {c.anio} año · {c.cicloLectivo}
-                        </p>
-                        <Editar>
-                          <FormGuardar accion={editarCurso} className="grid grid-cols-2 gap-2">
-                            <input type="hidden" name="id" value={c.id} />
-                            <label>
-                              <span className="etiqueta">Año</span>
-                              <input name="anio" required defaultValue={c.anio} className="campo" />
-                            </label>
-                            <label>
-                              <span className="etiqueta">Ciclo lectivo</span>
-                              <input name="cicloLectivo" type="number" defaultValue={c.cicloLectivo} className="campo" />
-                            </label>
-                            <BotonGuardar className="boton-primario col-span-2" texto="Guardar" />
-                          </FormGuardar>
-                          <div className="mt-3 text-center">
-                            <BotonBorrar
-                              accion={borrarElemento}
-                              campos={{ nivel: "curso", id: c.id }}
-                              texto="Borrar curso"
-                              aviso="Se borra el curso con sus divisiones, materias, alumnos, notas y asistencias."
-                            />
-                          </div>
-                        </Editar>
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-2">
-
-                        {c.divisiones.map((d) => (
-                          <Link
-                            key={d.id}
-                            href={`/config/division/${d.id}`}
-                            className="rounded-lg border border-borde px-3 py-1.5 text-sm"
-                          >
-                            {c.anio} {d.seccion} <span className="text-texto-2">· {d.turno}</span>
-                            {d.materias.length > 0 && (
-                              <span className="text-texto-2"> · {d.materias.map((a) => a.materia).join(", ")}</span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                      {c.divisiones.length > 0 && (
-                        <p className="mt-1 text-[11px] text-texto-2">Tocá la división para cambiar sus datos, materias o alumnos, o para borrarla.</p>
-                      )}
-                      <Desplegable texto="+ División">
-                        <form action={crearDivision} className="grid grid-cols-2 gap-2">
-                          <input type="hidden" name="cursoId" value={c.id} />
-                          <input name="seccion" required placeholder="Sección (A, B, C…)" className="campo" />
-                          <select name="turno" className="campo" defaultValue="Mañana">
-                            {TURNOS.map((t) => (
-                              <option key={t}>{t}</option>
-                            ))}
-                          </select>
-                          <input name="preceptor" placeholder="Preceptor/a" className="campo col-span-2" />
-                          <button className="boton-primario col-span-2">Crear división</button>
-                        </form>
-                      </Desplegable>
-                    </li>
-                  ))}
-                </ul>
-
-                <Desplegable texto="+ Curso">
-                  <form action={crearCurso} className="grid grid-cols-2 gap-2">
-                    <input type="hidden" name="escuelaId" value={e.id} />
-                    <input name="anio" required placeholder="Año (1°, 2°…)" className="campo" />
-                    <input name="cicloLectivo" type="number" defaultValue={anio} className="campo" />
-                    <button className="boton-primario col-span-2">Crear curso</button>
-                  </form>
-                </Desplegable>
-                  </>
-                )}
+                <GruposEscuela escuelaId={e.id} cursos={e.cursos} anio={anio} eps={m.formato === "eps"} />
               </div>
             ))}
             <Desplegable texto="+ Escuela">
@@ -244,25 +166,31 @@ function Editar({ children }: { children: React.ReactNode }) {
 
 type CursoArbol = Awaited<ReturnType<typeof arbolCursos>>[number]["escuelas"][number]["cursos"][number];
 
-// En la EPS no hay cursos: las comisiones van directo en la escuela, agrupadas por ciclo lectivo
-function ComisionesEps({ escuelaId, cursos, anio }: { escuelaId: number; cursos: CursoArbol[]; anio: number }) {
+// Los grupos de una escuela, sin el paso intermedio de "curso":
+// en secundaria cada uno es año + división ("5° A"); en la EPS, una comisión. Se agrupan por ciclo lectivo.
+function GruposEscuela({ escuelaId, cursos, anio, eps }: { escuelaId: number; cursos: CursoArbol[]; anio: number; eps: boolean }) {
   const ciclos = [...new Set(cursos.map((c) => c.cicloLectivo))].sort((a, b) => b - a);
-  const delCiclo = (ciclo: number) => cursos.filter((c) => c.cicloLectivo === ciclo).flatMap((c) => c.divisiones);
+  const delCiclo = (ciclo: number) =>
+    cursos
+      .filter((c) => c.cicloLectivo === ciclo)
+      .flatMap((c) => c.divisiones.map((d) => ({ ...d, anio: c.anio })))
+      .sort((x, y) => x.anio.localeCompare(y.anio, "es", { numeric: true }) || x.seccion.localeCompare(y.seccion, "es", { numeric: true }));
   const variosCiclos = ciclos.filter((c) => delCiclo(c).length > 0).length > 1;
   const cantidadEsteAnio = delCiclo(anio).length;
+  const palabra = eps ? "comisión" : "curso";
   return (
     <>
       <div className="mt-3 space-y-3">
         {ciclos.map((ciclo) => {
-          const comisiones = delCiclo(ciclo);
-          if (!comisiones.length) return null;
+          const grupos = delCiclo(ciclo);
+          if (!grupos.length) return null;
           return (
             <div key={ciclo}>
               {(variosCiclos || ciclo !== anio) && <p className="mb-1.5 text-xs font-semibold text-texto-2">Ciclo {ciclo}</p>}
               <div className="flex flex-wrap gap-2">
-                {comisiones.map((d) => (
+                {grupos.map((d) => (
                   <Link key={d.id} href={`/config/division/${d.id}`} className="rounded-lg border border-borde px-3 py-1.5 text-sm">
-                    {d.seccion} <span className="text-texto-2">· {d.turno}</span>
+                    {eps ? d.seccion : `${d.anio} ${d.seccion}`} <span className="text-texto-2">· {d.turno}</span>
                     {d.materias.length > 0 && <span className="text-texto-2"> · {d.materias.map((a) => a.materia).join(", ")}</span>}
                   </Link>
                 ))}
@@ -271,16 +199,31 @@ function ComisionesEps({ escuelaId, cursos, anio }: { escuelaId: number; cursos:
           );
         })}
         {cursos.some((c) => c.divisiones.length > 0) && (
-          <p className="text-[11px] text-texto-2">Tocá la comisión para cambiar sus datos, materias o estudiantes, o para borrarla.</p>
+          <p className="text-[11px] text-texto-2">
+            Tocá {eps ? "la comisión" : "el curso"} para cambiar sus datos, materias o {eps ? "estudiantes" : "alumnos"}, o para borrarl{eps ? "a" : "o"}.
+          </p>
         )}
       </div>
-      <Desplegable texto="+ Comisión">
-        <form action={crearComision} className="grid grid-cols-2 gap-2">
+      <Desplegable texto={`+ ${eps ? "Comisión" : "Curso"}`}>
+        <form action={crearGrupo} className="grid grid-cols-2 gap-2">
           <input type="hidden" name="escuelaId" value={escuelaId} />
-          <label className="col-span-2">
-            <span className="etiqueta">Nombre</span>
-            <input name="seccion" required defaultValue={`Comisión ${cantidadEsteAnio + 1}`} className="campo" />
-          </label>
+          {eps ? (
+            <label className="col-span-2">
+              <span className="etiqueta">Nombre</span>
+              <input name="seccion" required defaultValue={`Comisión ${cantidadEsteAnio + 1}`} className="campo" />
+            </label>
+          ) : (
+            <>
+              <label>
+                <span className="etiqueta">Año</span>
+                <input name="anio" required placeholder="5°" className="campo" />
+              </label>
+              <label>
+                <span className="etiqueta">División</span>
+                <input name="seccion" required placeholder="A" className="campo" />
+              </label>
+            </>
+          )}
           <label>
             <span className="etiqueta">Turno</span>
             <select name="turno" className="campo" defaultValue="Mañana">
@@ -293,8 +236,8 @@ function ComisionesEps({ escuelaId, cursos, anio }: { escuelaId: number; cursos:
             <span className="etiqueta">Ciclo lectivo</span>
             <input name="cicloLectivo" type="number" defaultValue={anio} className="campo" />
           </label>
-          <input name="preceptor" placeholder="Coordinador/a" className="campo col-span-2" />
-          <button className="boton-primario col-span-2">Crear comisión</button>
+          <input name="preceptor" placeholder={eps ? "Coordinador/a" : "Preceptor/a"} className="campo col-span-2" />
+          <button className="boton-primario col-span-2">Crear {palabra}</button>
         </form>
       </Desplegable>
     </>

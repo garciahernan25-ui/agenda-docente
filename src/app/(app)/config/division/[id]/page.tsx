@@ -56,11 +56,17 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
         <summary className="cursor-pointer text-sm font-semibold">Datos de la {t.grupo}</summary>
         <FormGuardar accion={guardarDivision} className="mt-3 grid grid-cols-2 gap-2">
           <input type="hidden" name="id" value={id} />
-          <label>
-            <span className="etiqueta">{eps ? "Nombre" : "Sección"}</span>
+          {!eps && (
+            <label>
+              <span className="etiqueta">Año</span>
+              <input name="anio" required defaultValue={d.curso.anio} className="campo" />
+            </label>
+          )}
+          <label className={eps ? "col-span-2" : ""}>
+            <span className="etiqueta">{eps ? "Nombre" : "División"}</span>
             <input name="seccion" defaultValue={d.div.seccion} className="campo" />
           </label>
-          <label>
+          <label className="col-span-2">
             <span className="etiqueta">Turno</span>
             <select name="turno" defaultValue={d.div.turno} className="campo">
               {TURNOS.map((t) => (
