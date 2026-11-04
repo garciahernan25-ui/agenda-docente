@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { mandarFoto } from "@/lib/foto-cliente";
+import { ACEPTA, mandarFoto } from "@/lib/foto-cliente";
 import { agregarAlumnosLeidos } from "../../actions";
 
 type Fila = { apellido: string; nombre: string; baja: boolean; dudoso: boolean; incluir: boolean };
@@ -50,10 +50,10 @@ export function FotoLista({ divisionId, eps }: { divisionId: number; eps: boolea
 
   return (
     <div className="mt-3 border-t border-borde pt-3">
-      <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => leer(e.target.files?.[0])} />
+      <input ref={input} type="file" accept={ACEPTA} className="hidden" onChange={(e) => leer(e.target.files?.[0])} />
       {!filas && (
         <button type="button" onClick={() => input.current?.click()} disabled={leyendo} className="boton w-full disabled:opacity-60">
-          {leyendo ? "Leyendo la foto… (puede tardar unos segundos)" : "📷 O sacale una foto a la lista"}
+          {leyendo ? "Leyendo… (puede tardar unos segundos)" : "📷 O cargá la lista desde una foto, imagen o PDF"}
         </button>
       )}
 

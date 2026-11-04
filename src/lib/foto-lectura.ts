@@ -5,7 +5,7 @@ import { leerFoto } from "./gemini";
 
 export const pedidoFoto = z.object({
   imagen: z.string().min(100).max(6_000_000), // base64 de la foto ya achicada en el celu
-  mime: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  mime: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
 });
 
 /* ---------- Lista de alumnos ---------- */
@@ -31,7 +31,7 @@ const ESQUEMA_LISTA = {
 };
 
 const INSTRUCCIONES_LISTA = `Sos un asistente que transcribe listas de alumnos de escuelas argentinas.
-La foto muestra una lista de estudiantes (puede ser escrita a mano o impresa, a veces con números de orden).
+La foto (o el PDF, que puede tener varias páginas) muestra una lista de estudiantes (puede ser escrita a mano o impresa, a veces con números de orden).
 Devolvé SOLO un JSON con esta forma: {"alumnos":[{"apellido":"...","nombre":"...","tachado":false,"dudoso":false}]}.
 Reglas:
 - Un elemento por estudiante, en el mismo orden de la hoja. Ignorá títulos, fechas, encabezados y renglones vacíos.
@@ -82,7 +82,7 @@ const ESQUEMA_NOTAS = {
 };
 
 const INSTRUCCIONES_NOTAS = `Sos un asistente que transcribe planillas de notas de escuelas argentinas (escala 1 a 10, a veces con decimales como 7,5).
-La foto muestra una tabla: cada fila es un estudiante y cada columna de notas es una evaluación.
+La foto (o el PDF, que puede tener varias páginas: juntá las filas de todas) muestra una tabla: cada fila es un estudiante y cada columna de notas es una evaluación.
 Devolvé SOLO un JSON con esta forma:
 {"columnas":["encabezado col 1","encabezado col 2",...],"filas":[{"numero":"1","nombre":"PÉREZ, Juan","valores":["8","7,5",""],"dudoso":false}]}
 Reglas:

@@ -64,7 +64,7 @@ async function Contenido({
         volver={`/materias/${id}?c=${c}`}
       />
       <Link href={`/materias/${id}/notas/foto`} className="boton mb-3 block w-full py-2.5">
-        📷 Cargar notas desde una foto de la planilla
+        📷 Cargar notas desde una foto o PDF de la planilla
       </Link>
       <CargarNotas
         asignacionId={id}

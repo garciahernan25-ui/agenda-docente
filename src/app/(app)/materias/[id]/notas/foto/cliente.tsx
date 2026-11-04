@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
-import { mandarFoto } from "@/lib/foto-cliente";
+import { ACEPTA, mandarFoto } from "@/lib/foto-cliente";
 import { normal, parecidoFlexible as parecido } from "@/lib/nombres";
 import { guardarNotas } from "../../acciones";
 
@@ -130,11 +130,11 @@ export function NotasDesdeFoto(props: {
 
   return (
     <div className="space-y-4 pb-8">
-      <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => leer(e.target.files?.[0])} />
+      <input ref={input} type="file" accept={ACEPTA} className="hidden" onChange={(e) => leer(e.target.files?.[0])} />
 
       {!columnas && (
         <div className="tarjeta space-y-3 p-4 text-sm">
-          <p>Sacale una foto a tu planilla de notas en papel: de frente, con buena luz y que se vean los nombres y todas las columnas. Después revisás todo antes de guardar.</p>
+          <p>Sacale una foto a tu planilla de notas en papel, o subí una imagen o un PDF: de frente, con buena luz y que se vean los nombres y todas las columnas. Después revisás todo antes de guardar.</p>
           <div className="flex rounded-xl border border-borde bg-hoja p-0.5 font-semibold">
             {([1, 2] as const).map((n) => (
               <button key={n} type="button" onClick={() => setC(n)} className={`flex-1 rounded-lg px-3 py-1.5 ${c === n ? "bg-tinta text-hoja" : "text-texto-2"}`}>
@@ -143,7 +143,7 @@ export function NotasDesdeFoto(props: {
             ))}
           </div>
           <button type="button" onClick={() => input.current?.click()} disabled={leyendo} className="boton-primario w-full py-3 disabled:opacity-60">
-            {leyendo ? "Leyendo la planilla… (puede tardar unos segundos)" : "📷 Sacar o elegir foto"}
+            {leyendo ? "Leyendo la planilla… (puede tardar unos segundos)" : "📷 Sacar foto o subir imagen / PDF"}
           </button>
           {temasC.length === 0 && (
             <p className="text-xs text-texto-2">
