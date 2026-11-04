@@ -109,3 +109,98 @@ export async function leerPlanilla(imagen: string, mime: string) {
   if (!filas.length || !columnas.length) return { ok: false as const, motivo: "ilegible" as const };
   return { ok: true as const, datos: { columnas, filas } };
 }
+
+/* ---------- Planilla oficial de calificaciones (DGCyE) ---------- */
+
+const CELDAS = { type: "array", items: { type: "string" } };
+const ESQUEMA_OFICIAL = {
+  type: "object",
+  properties: {
+    filas: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          numero: { type: "string" },
+          nombre: { type: "string" },
+          parciales1: CELDAS,
+          valoracion1: { type: "string" },
+          calificacion1: { type: "string" },
+          inasistencias1: { type: "string" },
+          parciales2: CELDAS,
+          valoracion2: { type: "string" },
+          calificacion2: { type: "string" },
+          intensificacion1: { type: "string" },
+          inasistencias2: { type: "string" },
+          tachado: { type: "boolean" },
+          observacion: { type: "string" },
+          dudoso: { type: "boolean" },
+        },
+        required: ["numero", "nombre", "parciales1", "valoracion1", "calificacion1", "inasistencias1", "parciales2", "valoracion2", "calificacion2", "intensificacion1", "inasistencias2", "tachado", "observacion", "dudoso"],
+      },
+    },
+  },
+  required: ["filas"],
+};
+
+const INSTRUCCIONES_OFICIAL = `Sos un asistente que transcribe la "Planilla de calificaciones" oficial de secundaria de la Provincia de Buenos Aires (DGCyE).
+La foto (o el PDF, que puede tener varias páginas: juntá las filas de todas) es esa planilla, completada a mano, muchas veces con biromes de distintos colores. Cada fila es un estudiante: N° de orden (viene impreso a la izquierda, del 1 al 40), apellido y nombre, la columna "Cursa o recursa" (ignorala), y después:
+- 1° cuatrimestre: 5 casilleros chicos de "Calificaciones/valoraciones parciales"; "1° Valoración preliminar" (TEA, TEP o TED); "Calificación 1° cuatrimestre"; "Inasistencias del 1° cuatrimestre".
+- 2° cuatrimestre: 5 casilleros chicos de parciales; "2° Valoración preliminar"; "Calificación 2° cuatrimestre"; "Intensificación 1° cuatrimestre"; "Inasistencias del 2° cuatrimestre".
+Las columnas de Intensificación diciembre/febrero y "Calificación final" ignoralas.
+Devolvé SOLO un JSON: {"filas":[{"numero":"1","nombre":"PÉREZ, Juan","parciales1":["7","8","","",""],"valoracion1":"TEA","calificacion1":"7","inasistencias1":"3,5","parciales2":["6","","","",""],"valoracion2":"","calificacion2":"","intensificacion1":"","inasistencias2":"","tachado":false,"observacion":"","dudoso":false}]}
+Reglas:
+- Fijate bien en qué columna cae cada valor guiándote por las líneas verticales de la planilla: muchas veces los parciales están vacíos y solo hay valoración y calificación. Un valor escrito en "Valoración" o "Calificación" NO va en parciales.
+- parciales1 y parciales2 tienen siempre 5 elementos, en el orden de los casilleros; "" si el casillero está vacío.
+- Valoración: solo puede ser "TEA", "TEP" o "TED". Si la letra del medio no se lee bien (ej. parece "TCA"), poné la más parecida de las tres y marcá "dudoso": true.
+- Notas: números del 1 al 10, copialos como están ("7", "7,5"). Ojo: a mano el 7 suele llevar una rayita en el medio y puede parecer una cruz (+) o una "t": es un 7. El 1 puede tener un ganchito arriba.
+- Celda vacía = "".
+- "tachado": true si el nombre del estudiante está tachado con una línea (a veces roja) que cruza la fila: es alguien que dejó el curso. Incluilo igual, con lo que tenga escrito.
+- "observacion": si al costado de la fila, fuera de las columnas, hay una anotación corta (ej. "T.M", "pase", "salió"), copiala; si no, "".
+- Ignorá las filas vacías de abajo y el cuadro de totales del pie de página.
+- "dudoso": true si algo de esa fila no se lee con seguridad. No inventes: transcribí lo que ves.`;
+
+export type FilaOficial = {
+  numero: string;
+  nombre: string;
+  parciales1: string[];
+  valoracion1: string;
+  calificacion1: string;
+  inasistencias1: string;
+  parciales2: string[];
+  valoracion2: string;
+  calificacion2: string;
+  intensificacion1: string;
+  inasistencias2: string;
+  tachado: boolean;
+  observacion: string;
+  dudoso: boolean;
+};
+
+export async function leerPlanillaOficial(imagen: string, mime: string) {
+  const r = await leerFoto<{ filas?: Partial<FilaOficial>[] }>({ imagenBase64: imagen, mime, instrucciones: INSTRUCCIONES_OFICIAL, esquema: ESQUEMA_OFICIAL });
+  if (!r.ok) return r;
+  const t = (v: unknown) => String(v ?? "").trim();
+  const cinco = (a: unknown) => Array.from({ length: 5 }, (_, i) => t(Array.isArray(a) ? a[i] : ""));
+  const filas: FilaOficial[] = (r.datos.filas ?? [])
+    .map((f) => ({
+      numero: t(f.numero),
+      nombre: t(f.nombre),
+      parciales1: cinco(f.parciales1),
+      valoracion1: t(f.valoracion1).toUpperCase(),
+      calificacion1: t(f.calificacion1),
+      inasistencias1: t(f.inasistencias1),
+      parciales2: cinco(f.parciales2),
+      valoracion2: t(f.valoracion2).toUpperCase(),
+      calificacion2: t(f.calificacion2),
+      intensificacion1: t(f.intensificacion1),
+      inasistencias2: t(f.inasistencias2),
+      tachado: !!f.tachado,
+      observacion: t(f.observacion).slice(0, 40),
+      dudoso: !!f.dudoso,
+    }))
+    .filter((f) => f.nombre || f.numero)
+    .slice(0, 60);
+  if (!filas.length) return { ok: false as const, motivo: "ilegible" as const };
+  return { ok: true as const, datos: filas };
+}

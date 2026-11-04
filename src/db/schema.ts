@@ -246,6 +246,9 @@ export const cierres = sqliteTable(
     diciembre: integer("diciembre"),
     febrero: integer("febrero"),
     calificacionFinal: integer("calificacion_final"),
+    // Inasistencias traídas de la planilla en papel (si están, se usan en vez de las calculadas con la asistencia de la app)
+    inasistencias1Planilla: real("inasistencias_1_planilla"),
+    inasistencias2Planilla: real("inasistencias_2_planilla"),
     observacionRite: text("observacion_rite"), // EPS: observaciones sobre el/la estudiante
     actualizadoEn: creado(),
   },

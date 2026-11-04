@@ -66,6 +66,11 @@ async function Contenido({
       <Link href={`/materias/${id}/notas/foto`} className="boton mb-3 block w-full py-2.5">
         📷 Cargar notas desde una foto o PDF de la planilla
       </Link>
+      {cab.modalidad.formato !== "eps" && (
+        <Link href={`/materias/${id}/notas/planilla-oficial`} className="boton mb-3 block w-full py-2.5">
+          📋 Importar la planilla oficial (foto o PDF)
+        </Link>
+      )}
       <CargarNotas
         asignacionId={id}
         cuatrimestre={c}

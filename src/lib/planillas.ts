@@ -118,8 +118,9 @@ export async function filasPlanilla(asignacionId: number) {
       observacion: insc.observacion,
       parciales1: parcialesParaPlanilla(n1, temasRows.filter((t) => t.cuatrimestre === 1).map((t) => t.id)),
       parciales2: parcialesParaPlanilla(n2, temasRows.filter((t) => t.cuatrimestre === 2).map((t) => t.id)),
-      inasistencias1: r1.clases ? r1.inasistencias : null,
-      inasistencias2: r2.clases ? r2.inasistencias : null,
+      // las de la planilla en papel (si se importaron) mandan sobre las calculadas
+      inasistencias1: c?.inasistencias1Planilla ?? (r1.clases ? r1.inasistencias : null),
+      inasistencias2: c?.inasistencias2Planilla ?? (r2.clases ? r2.inasistencias : null),
       // Sin registros de asistencia no se puede afirmar que no concurrió
       concurrio1: r1.clases ? r1.concurrio : null,
       concurrio2: r2.clases ? r2.concurrio : null,

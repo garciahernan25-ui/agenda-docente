@@ -10,6 +10,7 @@ import {
   cierres,
   clases,
   ESTADOS_ASISTENCIA,
+  inscripciones,
   notas,
   planFormativo,
   temas,
@@ -342,4 +343,124 @@ export async function guardarPlan(entrada: z.input<typeof entradaPlan>) {
   }
   revalidatePath(`/materias/${d.asignacionId}`, "layout");
   return { ok: true as const };
+}
+
+/* ---------------- Importar la planilla oficial (en papel) ---------------- */
+
+const columnaImport = z.object({
+  usar: z.boolean(),
+  categoria: z.string().regex(CLAVE_CATEGORIA),
+  temaId: z.number().int().nullable(),
+  temaNuevo: z.string().trim().max(120).nullable(),
+});
+const nota = z.number().min(1).max(10).nullable();
+const entradaImport = z.object({
+  asignacionId: z.number().int().positive(),
+  fecha1: fecha,
+  fecha2: fecha,
+  columnas1: z.array(columnaImport).length(5),
+  columnas2: z.array(columnaImport).length(5),
+  guardarCierre1: z.boolean(),
+  guardarCierre2: z.boolean(),
+  filas: z
+    .array(
+      z.object({
+        inscripcionId: z.number().int(),
+        parciales1: z.array(nota).length(5),
+        parciales2: z.array(nota).length(5),
+        valoracion1: z.enum(VALORACIONES).nullable(),
+        calificacion1: nota,
+        inasistencias1: z.number().min(0).max(300).nullable(),
+        valoracion2: z.enum(VALORACIONES).nullable(),
+        calificacion2: nota,
+        intensificacion1: nota,
+        inasistencias2: z.number().min(0).max(300).nullable(),
+        baja: z.boolean().default(false), // tachado en el papel: queda de baja
+        observacion: z.string().trim().max(40).nullable().default(null), // ej. "T.M"
+      }),
+    )
+    .max(80),
+});
+
+// Guarda lo leído de la planilla en papel: cada columna de parciales como notas de un tema, y el cierre tal cual estaba
+export async function importarPlanilla(entrada: z.input<typeof entradaImport>) {
+  await exigirDocente();
+  const d = entradaImport.parse(entrada);
+  await validarInscripciones(d.asignacionId, d.filas.map((f) => f.inscripcionId));
+  const usadas = [...d.columnas1, ...d.columnas2].filter((c) => c.usar);
+  await validarCategorias(d.asignacionId, [...new Set(usadas.map((c) => c.categoria))]);
+
+  let cantidad = 0;
+  for (const [cuatri, columnas, fechaC] of [
+    [1, d.columnas1, d.fecha1],
+    [2, d.columnas2, d.fecha2],
+  ] as const) {
+    for (let k = 0; k < 5; k++) {
+      const col = columnas[k];
+      if (!col.usar) continue;
+      const valores = d.filas.flatMap((f) => {
+        const v = (cuatri === 1 ? f.parciales1 : f.parciales2)[k];
+        return v === null ? [] : [{ inscripcionId: f.inscripcionId, valor: v }];
+      });
+      if (!valores.length) continue;
+      let temaId = col.categoria === "examen" ? null : col.temaId;
+      if (col.categoria !== "examen" && col.temaNuevo) {
+        const [t] = await db
+          .insert(temas)
+          .values({ asignacionId: d.asignacionId, cuatrimestre: cuatri, titulo: col.temaNuevo, orden: Date.now() % 1e9 + k })
+          .returning();
+        temaId = t.id;
+      }
+      if (col.categoria !== "examen" && temaId === null) throw new Error(`Falta el tema de la columna ${k + 1} del ${cuatri}° cuatrimestre`);
+      await db.insert(notas).values(
+        valores.map((v) => ({
+          asignacionId: d.asignacionId,
+          inscripcionId: v.inscripcionId,
+          cuatrimestre: cuatri,
+          categoria: col.categoria,
+          temaId,
+          valor: v.valor,
+          fecha: fechaC,
+          comentario: "De la planilla en papel",
+        })),
+      );
+      cantidad += valores.length;
+    }
+  }
+
+  // Cierre: solo lo que vino escrito (lo vacío no pisa lo que ya hubiera)
+  for (const f of d.filas) {
+    const campos: Partial<typeof cierres.$inferInsert> = {};
+    if (d.guardarCierre1) {
+      if (f.valoracion1) campos.valoracion1 = f.valoracion1;
+      if (f.calificacion1 !== null) campos.calificacion1 = Math.round(f.calificacion1);
+      if (f.inasistencias1 !== null) campos.inasistencias1Planilla = f.inasistencias1;
+    }
+    if (d.guardarCierre2) {
+      if (f.valoracion2) campos.valoracion2 = f.valoracion2;
+      if (f.calificacion2 !== null) campos.calificacion2 = Math.round(f.calificacion2);
+      if (f.intensificacion1 !== null) campos.intensificacion1 = Math.round(f.intensificacion1);
+      if (f.inasistencias2 !== null) campos.inasistencias2Planilla = f.inasistencias2;
+    }
+    if (!Object.keys(campos).length) continue;
+    await db
+      .insert(cierres)
+      .values({ asignacionId: d.asignacionId, inscripcionId: f.inscripcionId, ...campos })
+      .onConflictDoUpdate({ target: [cierres.asignacionId, cierres.inscripcionId], set: { ...campos, actualizadoEn: new Date().toISOString() } });
+  }
+  // Los tachados en el papel quedan de baja (siguen en su fila, como pide la planilla); la anotación del margen se guarda
+  let bajas = 0;
+  for (const f of d.filas) {
+    if (!f.baja && !f.observacion) continue;
+    const cambio: Partial<typeof inscripciones.$inferInsert> = {};
+    if (f.baja) {
+      cambio.estado = "baja";
+      bajas++;
+    }
+    if (f.observacion) cambio.observacion = f.observacion;
+    await db.update(inscripciones).set(cambio).where(eq(inscripciones.id, f.inscripcionId));
+  }
+  revalidatePath(`/materias/${d.asignacionId}`, "layout");
+  revalidatePath("/config", "layout");
+  return { ok: true as const, notas: cantidad, bajas };
 }
