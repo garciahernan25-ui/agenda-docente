@@ -10,7 +10,6 @@ import {
 import {
   FORMATOS,
   TURNOS,
-  CATEGORIAS,
   ESTADOS_ASISTENCIA,
   VALORACIONES,
   TIPOS_EVENTO,
@@ -151,8 +150,11 @@ export const pesos = sqliteTable(
     asignacionId: integer("asignacion_id")
       .notNull()
       .references(() => asignaciones.id, { onDelete: "cascade" }),
-    categoria: text("categoria", { enum: CATEGORIAS }).notNull(),
+    categoria: text("categoria").notNull(), // de las de base o una agregada por la docente
     peso: real("peso").notNull(), // porcentaje, ej. 40
+    nombre: text("nombre"), // si la renombraste (o el nombre de una agregada)
+    orden: integer("orden").notNull().default(0),
+    oculta: integer("oculta", { mode: "boolean" }).notNull().default(false), // sacada: no se ofrece más, pero sus notas cuentan
   },
   (t) => [primaryKey({ columns: [t.asignacionId, t.categoria] })],
 );
@@ -211,7 +213,7 @@ export const notas = sqliteTable("notas", {
     .notNull()
     .references(() => inscripciones.id, { onDelete: "cascade" }),
   cuatrimestre: integer("cuatrimestre").notNull(),
-  categoria: text("categoria", { enum: CATEGORIAS }).notNull(),
+  categoria: text("categoria").notNull(),
   temaId: integer("tema_id").references(() => temas.id, {
     onDelete: "set null",
   }),

@@ -7,6 +7,9 @@ export const NIVELES_EPS = [1, 2, 3, 4] as const;
 
 export const TURNOS = ["Mañana", "Tarde", "Vespertino", "Noche"] as const;
 
+// Tipos de evaluación que trae cada materia de entrada. Cada docente puede renombrarlos, sacarlos o sumar otros
+// (quedan en la tabla "pesos"); quiz y examen son fijos: el quiz recibe las notas de la página de quizzes y
+// el examen es la nota del cuatrimestre que va al final de la planilla.
 export const CATEGORIAS = [
   "participacion",
   "desempeno",
@@ -16,7 +19,11 @@ export const CATEGORIAS = [
   "quiz",
   "examen",
 ] as const;
-export type Categoria = (typeof CATEGORIAS)[number];
+export type CategoriaBase = (typeof CATEGORIAS)[number];
+// Una categoría puede ser de las de base o una que agregó la docente ("x_carpeta", "x_laboratorio"…)
+export type Categoria = string;
+export const CATEGORIAS_FIJAS = ["quiz", "examen"] as const;
+export const CLAVE_CATEGORIA = /^[a-z][a-z0-9_]{0,39}$/;
 
 export const ESTADOS_ASISTENCIA = ["P", "A", "T", "J"] as const;
 export type EstadoAsistencia = (typeof ESTADOS_ASISTENCIA)[number];

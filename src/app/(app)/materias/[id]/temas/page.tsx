@@ -8,6 +8,7 @@ import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, hoyAR } from "@/lib/fechas";
 import { GrillaTema } from "./grilla";
 import { grupoDe } from "@/lib/grupo";
+import { tiposDe } from "@/lib/tipos";
 
 export default function NotasPorTema(props: PageProps<"/materias/[id]/temas">) {
   return (
@@ -30,7 +31,7 @@ async function Contenido({
   const hoy = hoyAR();
   const c: 1 | 2 = sp.c === "1" ? 1 : sp.c === "2" ? 2 : cuatrimestreDe(hoy);
   const cab = await cabecera(id);
-  const [lista, todos] = await Promise.all([listaAlumnos(cab.div.id), temasDe(id)]);
+  const [lista, todos, tipos] = await Promise.all([listaAlumnos(cab.div.id), temasDe(id), tiposDe(id)]);
   const temas = todos.filter((t) => t.cuatrimestre === c);
   const pedido = typeof sp.t === "string" ? Number(sp.t) : NaN;
   const tema = temas.find((t) => t.id === pedido) ?? temas.at(-1) ?? null;
@@ -53,6 +54,10 @@ async function Contenido({
           cuatrimestre={c}
           hoy={hoy}
           temas={temas.map((t) => ({ id: t.id, titulo: t.titulo }))}
+          // los que se usan hoy, y los sacados que en este tema todavía tienen notas
+          tipos={tipos
+            .filter((t) => t.clave !== "examen" && (!t.oculta || filasNotas.some((n) => n.categoria === t.clave)))
+            .map((t) => ({ clave: t.clave, nombre: t.nombre, corto: t.corto }))}
           tema={tema ? { id: tema.id, titulo: tema.titulo } : null}
           alumnos={lista
             .filter(({ insc }) => insc.estado === "activo" || filasNotas.some((n) => n.inscripcionId === insc.id))

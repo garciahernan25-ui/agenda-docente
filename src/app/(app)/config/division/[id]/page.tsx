@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { alumnos, asignaciones, cursos, divisiones, escuelas, inscripciones, modalidades, pesos, TURNOS, CATEGORIAS, NIVELES_EPS } from "@/db/schema";
+import { alumnos, asignaciones, cursos, divisiones, escuelas, inscripciones, modalidades, notas, pesos, TURNOS, NIVELES_EPS } from "@/db/schema";
 import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
-import { PESOS_POR_DEFECTO } from "@/lib/calculos";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import { listarMaterias } from "@/lib/consultas";
+import { armarTipos } from "@/lib/tipos-comun";
+import { EditorTipos } from "./tipos";
 import { BotonBorrar } from "@/components/boton-borrar";
 import { nombreGrupo, textosGrupo } from "@/lib/grupo";
 import { actualizarInscripcion, agregarAlumnos, asignarNivelATodos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
@@ -42,6 +43,13 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       .orderBy(asc(inscripciones.orden)),
     db.select().from(asignaciones).where(eq(asignaciones.divisionId, id)),
     db.select().from(pesos),
+  ]);
+  const idsMaterias = materias.map((m) => m.id);
+  const [categoriasConNotas, todasLasMaterias] = await Promise.all([
+    idsMaterias.length
+      ? db.selectDistinct({ asignacionId: notas.asignacionId, categoria: notas.categoria }).from(notas).where(inArray(notas.asignacionId, idsMaterias))
+      : Promise.resolve([] as { asignacionId: number; categoria: string }[]),
+    listarMaterias(),
   ]);
 
   return (
@@ -93,7 +101,6 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
       <h2 className="titulo-seccion">Materias</h2>
       <div className="space-y-3">
         {materias.map((m) => {
-          const p = Object.fromEntries(pesosRows.filter((x) => x.asignacionId === m.id).map((x) => [x.categoria, x.peso]));
           return (
             <details key={m.id} className="tarjeta p-4">
               <summary className="cursor-pointer font-semibold">
@@ -142,27 +149,16 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
                     </div>
                   </fieldset>
                 )}
-                <fieldset>
-                  <legend className="etiqueta">Peso de cada parte en la nota del cuatrimestre (%)</legend>
-                  <div className="grid grid-cols-2 gap-2">
-                    {CATEGORIAS.map((c) => (
-                      <label key={c} className="flex items-center justify-between gap-2 rounded-xl border border-borde px-3 py-1.5 text-sm">
-                        {NOMBRE_CATEGORIA[c]}
-                        <input
-                          name={`peso_${c}`}
-                          type="number"
-                          min={0}
-                          max={100}
-                          defaultValue={p[c] ?? PESOS_POR_DEFECTO[c] ?? 0}
-                          className="w-14 rounded-lg border border-borde bg-papel px-2 py-1 text-right"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                  <p className="mt-1 text-xs text-texto-2">No hace falta que sumen 100: se usan como proporción.</p>
-                </fieldset>
                 <BotonGuardar className="boton-primario w-full" texto="Guardar materia" />
               </FormGuardar>
+              <EditorTipos
+                asignacionId={m.id}
+                tipos={armarTipos(pesosRows.filter((x) => x.asignacionId === m.id))}
+                conNotas={categoriasConNotas.filter((x) => x.asignacionId === m.id).map((x) => x.categoria)}
+                otras={todasLasMaterias
+                  .filter((o) => o.id !== m.id)
+                  .map((o) => ({ id: o.id, texto: `${nombreGrupo(o.formato, o.anio, o.seccion)} · ${o.materia} · ${o.escuela}` }))}
+              />
               <div className="mt-3 text-center">
                 <BotonBorrar
                   accion={borrarElemento}

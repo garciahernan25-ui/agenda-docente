@@ -18,7 +18,6 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   await exigirDocente();
   const id = Number((await params).id);
   const [{ cab, contenido, unidades }, materias] = await Promise.all([datosPlanificacion(id), listarMaterias()]);
-  const eps = cab.modalidad.formato === "eps";
   return (
     <>
       <Encabezado

@@ -2,7 +2,7 @@
 // - Con señal: todo va al servidor, como siempre (no se guardan páginas con datos de alumnos).
 // - Sin señal (o si el servidor no contesta en 10 s): abre la versión sin conexión (offline.html + sin-conexion.js),
 //   que usa lo que el celu guardó la última vez y deja tomar asistencia y cargar notas.
-const CACHE = "agenda-v2";
+const CACHE = "agenda-v3";
 const FIJOS = ["/offline.html", "/sin-conexion.js", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

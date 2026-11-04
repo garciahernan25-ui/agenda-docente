@@ -7,7 +7,8 @@ import { Cargando, Encabezado } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, fechaCortaMayus, hoyAR } from "@/lib/fechas";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import { tiposDe } from "@/lib/tipos";
+import { nombresDeTipos } from "@/lib/tipos-comun";
 import { CargarNotas } from "./cargar";
 import { grupoDe } from "@/lib/grupo";
 
@@ -32,7 +33,7 @@ async function Contenido({
   const hoy = hoyAR();
   const c: 1 | 2 = sp.c === "1" ? 1 : sp.c === "2" ? 2 : cuatrimestreDe(hoy);
   const cab = await cabecera(id);
-  const [lista, temas, recientes] = await Promise.all([
+  const [lista, temas, recientes, tipos] = await Promise.all([
     listaAlumnos(cab.div.id),
     temasDe(id),
     db
@@ -41,7 +42,9 @@ async function Contenido({
       .where(and(eq(notas.asignacionId, id), eq(notas.cuatrimestre, c)))
       .orderBy(desc(notas.fecha), desc(notas.id))
       .limit(400),
+    tiposDe(id),
   ]);
+  const nombreTipo = nombresDeTipos(tipos);
 
   // Agrupa lo ya cargado: misma fecha, categoría y tema = una "tanda"
   const tandas = new Map<string, { fecha: string; categoria: string; temaId: number | null; cantidad: number }>();
@@ -68,6 +71,7 @@ async function Contenido({
         alumnos={lista
           .filter(({ insc }) => insc.estado === "activo")
           .map(({ insc, alumno }) => ({ inscripcionId: insc.id, orden: insc.orden, nombre: `${alumno.apellido}, ${alumno.nombre}` }))}
+        tipos={tipos.filter((t) => !t.oculta).map((t) => ({ clave: t.clave, nombre: t.nombre }))}
       />
 
       {tandas.size > 0 && (
@@ -82,7 +86,7 @@ async function Contenido({
                 >
                   <span className="w-24 shrink-0 text-xs text-texto-2">{fechaCortaMayus(t.fecha)}</span>
                   <span className="min-w-0 flex-1 truncate">
-                    {NOMBRE_CATEGORIA[t.categoria as keyof typeof NOMBRE_CATEGORIA]}
+                    {nombreTipo[t.categoria] ?? t.categoria}
                     {t.temaId && <span className="text-texto-2"> · {tituloTema.get(t.temaId)}</span>}
                   </span>
                   <span className="text-xs text-texto-2">{t.cantidad} notas</span>

@@ -74,7 +74,6 @@ function tabla(anchos: number[], filas: TableCell[][]) {
 
 function cabecera(d: DatosPlanificacion) {
   const { cab, contenido } = d;
-  const eps = cab.modalidad.formato === "eps";
   const a = [0.2, 0.14, 0.16, 0.3, 0.2].map((p) => Math.round(ANCHO * p));
   const dos = (x: string, y: string) => [parrafo(x), parrafo(y)];
   return tabla(a, [

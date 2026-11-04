@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import {
   asignaciones,
-  CATEGORIAS,
+  CLAVE_CATEGORIA,
   cierres,
   clases,
   ESTADOS_ASISTENCIA,
@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { exigirDocente } from "@/lib/auth";
 import { aplicarAsistencia, validarInscripciones } from "@/lib/sin-conexion";
+import { validarCategorias } from "@/lib/tipos";
 
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -50,7 +51,7 @@ export async function borrarClase(asignacionId: number, fechaClase: string) {
 const entradaNotas = z.object({
   asignacionId: z.number().int(),
   cuatrimestre: z.union([z.literal(1), z.literal(2)]),
-  categoria: z.enum(CATEGORIAS),
+  categoria: z.string().regex(CLAVE_CATEGORIA),
   temaId: z.number().int().nullable(),
   temaNuevo: z.string().trim().max(120).optional(),
   fecha,
@@ -61,6 +62,7 @@ export async function guardarNotas(entrada: z.input<typeof entradaNotas>) {
   await exigirDocente();
   const d = entradaNotas.parse(entrada);
   await validarInscripciones(d.asignacionId, d.valores.map((v) => v.inscripcionId));
+  await validarCategorias(d.asignacionId, [d.categoria]);
 
   let temaId = d.temaId;
   if (d.temaNuevo) {
@@ -111,7 +113,7 @@ const entradaTanda = z.object({
   cambios: z.array(z.object({ notaId: z.number().int(), valor: z.number().min(1).max(10).nullable() })),
   nuevas: z.array(z.object({ inscripcionId: z.number().int(), valor: z.number().min(1).max(10) })),
   fecha,
-  categoria: z.enum(CATEGORIAS),
+  categoria: z.string().regex(CLAVE_CATEGORIA),
   temaId: z.number().int().nullable(),
 });
 
@@ -119,6 +121,7 @@ export async function guardarTanda(entrada: z.input<typeof entradaTanda>) {
   await exigirDocente();
   const d = entradaTanda.parse(entrada);
   await validarInscripciones(d.asignacionId, d.nuevas.map((n) => n.inscripcionId));
+  await validarCategorias(d.asignacionId, [d.categoria]);
   const propias = new Set(
     d.notaIds.length
       ? (await db.select({ id: notas.id }).from(notas).where(and(eq(notas.asignacionId, d.asignacionId), inArray(notas.id, d.notaIds)))).map((r) => r.id)
@@ -179,7 +182,7 @@ const entradaGrilla = z.object({
   celdas: z.array(
     z.object({
       inscripcionId: z.number().int(),
-      categoria: z.enum(CATEGORIAS),
+      categoria: z.string().regex(CLAVE_CATEGORIA),
       notaId: z.number().int().nullable(), // la nota que ya estaba en ese casillero
       valor: z.number().min(1).max(10).nullable(), // null = borrar
     }),
@@ -191,6 +194,7 @@ export async function guardarGrillaTema(entrada: z.input<typeof entradaGrilla>) 
   await exigirDocente();
   const d = entradaGrilla.parse(entrada);
   await validarInscripciones(d.asignacionId, d.celdas.map((c) => c.inscripcionId));
+  await validarCategorias(d.asignacionId, [...new Set(d.celdas.map((c) => c.categoria))]);
   const [tema] = await db.select().from(temas).where(and(eq(temas.id, d.temaId), eq(temas.asignacionId, d.asignacionId)));
   if (!tema) throw new Error("Tema inexistente");
 

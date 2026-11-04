@@ -36,6 +36,13 @@
       "when": 1793624455470,
       "tag": "0004_proyectos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793750444674,
+      "tag": "0005_tipos_evaluacion",
+      "breakpoints": true
     }
   ]
 }

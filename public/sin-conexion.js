@@ -254,13 +254,15 @@
       });
     });
 
+    // Columnas: los tipos de evaluación de la materia (si la copia es vieja y no los trae, los de base)
+    var COLS = m.tipos && m.tipos.length ? m.tipos.map(function (t) { return [t.clave, t.corto]; }) : CATEGORIAS;
     html += '<div class="tarjeta tabla" style="margin-top:12px"><table><thead><tr><th class="nombre">Estudiante</th>' +
-      CATEGORIAS.map(function (x) { return "<th>" + x[1] + "</th>"; }).join("") + "</tr></thead><tbody>" +
+      COLS.map(function (x) { return "<th>" + esc(x[1]) + "</th>"; }).join("") + "</tr></thead><tbody>" +
       m.alumnos.map(function (a) {
-        return '<tr><td class="nombre">' + esc(a.nombre) + "</td>" + CATEGORIAS.map(function (x) {
+        return '<tr><td class="nombre">' + esc(a.nombre) + "</td>" + COLS.map(function (x) {
           var k = a.id + "|" + x[0];
           if (original[k] === "varias") return '<td class="chico">varias</td>';
-          return '<td><input inputmode="decimal" data-k="' + k + '" value="' + (original[k] || "") + '" aria-label="' + esc(a.nombre) + " " + x[1] + '"></td>';
+          return '<td><input inputmode="decimal" data-k="' + k + '" value="' + (original[k] || "") + '" aria-label="' + esc(a.nombre) + " " + esc(x[1]) + '"></td>';
         }).join("") + "</tr>";
       }).join("") + "</tbody></table></div>" +
       '<label style="display:block;margin-top:12px"><span class="chico">Fecha de las notas nuevas</span><input type="date" id="fecha" class="campo" value="' + hoy() + '"></label>' +

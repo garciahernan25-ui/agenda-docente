@@ -7,7 +7,7 @@ import { arbolCursos } from "@/lib/consultas";
 import { hoyAR } from "@/lib/fechas";
 import { salir } from "@/app/login/actions";
 import { BotonBorrar } from "@/components/boton-borrar";
-import { borrarElemento, crearGrupo, crearEscuela, crearModalidad, editarCurso, editarEscuela, editarModalidad } from "./actions";
+import { borrarElemento, crearGrupo, crearEscuela, crearModalidad, editarEscuela, editarModalidad } from "./actions";
 import { BotonGuardar, FormGuardar } from "@/components/form-guardar";
 
 export const metadata = { title: "Cursos · Agenda docente" };

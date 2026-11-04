@@ -1,5 +1,6 @@
 import type { Categoria, TipoEvento } from "@/db/schema";
 
+// Nombres de los tipos de evaluación de base (cada materia puede renombrarlos)
 export const NOMBRE_CATEGORIA: Record<Categoria, string> = {
   participacion: "Participación",
   desempeno: "Desempeño en clase",

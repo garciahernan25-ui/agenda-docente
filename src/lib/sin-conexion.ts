@@ -8,7 +8,7 @@ import {
   alumnos,
   asignaciones,
   asistencias,
-  CATEGORIAS,
+  CLAVE_CATEGORIA,
   clases,
   cursos,
   divisiones,
@@ -17,10 +17,13 @@ import {
   inscripciones,
   modalidades,
   notas,
+  pesos,
   temas,
 } from "@/db/schema";
 import { cuatrimestreDe } from "./fechas";
 import { nombreGrupo } from "./grupo";
+import { validarCategorias } from "./tipos";
+import { armarTipos } from "./tipos-comun";
 
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -44,7 +47,7 @@ export const itemCeldas = z.object({
     .array(
       z.object({
         inscripcionId: z.number().int(),
-        categoria: z.enum(CATEGORIAS),
+        categoria: z.string().regex(CLAVE_CATEGORIA),
         valor: z.number().min(1).max(10).nullable(), // null = borrar
       }),
     )
@@ -89,6 +92,7 @@ export async function aplicarAsistencia(d: Omit<z.infer<typeof itemAsistencia>, 
 // Si en un casillero hay más de una nota (dos TP del mismo tema), no se toca y se avisa.
 export async function aplicarCeldas(d: Omit<z.infer<typeof itemCeldas>, "uid" | "tipo">) {
   await validarInscripciones(d.asignacionId, d.celdas.map((c) => c.inscripcionId));
+  await validarCategorias(d.asignacionId, [...new Set(d.celdas.map((c) => c.categoria))]);
   const [tema] = await db.select().from(temas).where(and(eq(temas.id, d.temaId), eq(temas.asignacionId, d.asignacionId)));
   if (!tema) throw new Error("Ese tema ya no existe");
   const existentes = await db
@@ -122,7 +126,7 @@ export async function aplicarCeldas(d: Omit<z.infer<typeof itemCeldas>, "uid" | 
 
 // Lo que el celu guarda para poder dar clase sin señal: materias, estudiantes activos, temas y notas por tema
 export async function datosParaSinConexion() {
-  const [asigs, lista, temasRows, notasRows] = await Promise.all([
+  const [asigs, lista, temasRows, notasRows, pesosRows] = await Promise.all([
     db
       .select({
         id: asignaciones.id,
@@ -148,6 +152,7 @@ export async function datosParaSinConexion() {
       .orderBy(asc(inscripciones.orden)),
     db.select({ id: temas.id, asignacionId: temas.asignacionId, titulo: temas.titulo, cuatrimestre: temas.cuatrimestre, orden: temas.orden }).from(temas).orderBy(asc(temas.cuatrimestre), asc(temas.orden)),
     db.select({ asignacionId: notas.asignacionId, inscripcionId: notas.inscripcionId, temaId: notas.temaId, categoria: notas.categoria, valor: notas.valor }).from(notas),
+    db.select().from(pesos),
   ]);
   return {
     version: 1,
@@ -162,6 +167,10 @@ export async function datosParaSinConexion() {
       alumnos: lista
         .filter((i) => i.divisionId === a.divisionId && i.estado === "activo")
         .map((i) => ({ id: i.id, orden: i.orden, nombre: `${i.apellido}, ${i.nombre}`, nivel: i.nivel })),
+      // columnas de la grilla por tema: los tipos en uso de la materia, sin el examen
+      tipos: armarTipos(pesosRows.filter((p) => p.asignacionId === a.id))
+        .filter((t) => !t.oculta && t.clave !== "examen")
+        .map((t) => ({ clave: t.clave, corto: t.corto })),
       temas: temasRows.filter((t) => t.asignacionId === a.id).map((t) => ({ id: t.id, titulo: t.titulo, cuatrimestre: t.cuatrimestre })),
       notas: notasRows
         .filter((n) => n.asignacionId === a.id && n.temaId !== null)

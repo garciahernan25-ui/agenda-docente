@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CATEGORIAS, type Categoria } from "@/db/constantes";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import type { Categoria } from "@/db/constantes";
 import { guardarNotas } from "../acciones";
 
 type Alumno = { inscripcionId: number; orden: number; nombre: string };
@@ -16,9 +15,10 @@ export function CargarNotas(props: {
   hoy: string;
   temas: { id: number; titulo: string }[];
   alumnos: Alumno[];
+  tipos: { clave: string; nombre: string }[];
 }) {
   const router = useRouter();
-  const [categoria, setCategoria] = useState<Categoria>("tp_escrito");
+  const [categoria, setCategoria] = useState<Categoria>(() => (props.tipos.some((t) => t.clave === "tp_escrito") ? "tp_escrito" : (props.tipos[0]?.clave ?? "examen")));
   const [tema, setTema] = useState<string>(props.temas.at(-1)?.id.toString() ?? (props.temas.length ? "" : NUEVO));
   const [temaNuevo, setTemaNuevo] = useState("");
   const [fecha, setFecha] = useState(props.hoy);
@@ -72,8 +72,8 @@ export function CargarNotas(props: {
         <label className="block">
           <span className="etiqueta">Qué evaluás</span>
           <select value={categoria} onChange={(e) => setCategoria(e.target.value as Categoria)} className="campo">
-            {CATEGORIAS.map((c) => (
-              <option key={c} value={c}>{NOMBRE_CATEGORIA[c]}</option>
+            {props.tipos.map((t) => (
+              <option key={t.clave} value={t.clave}>{t.nombre}</option>
             ))}
           </select>
         </label>

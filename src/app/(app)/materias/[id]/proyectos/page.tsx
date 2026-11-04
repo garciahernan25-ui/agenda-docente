@@ -22,7 +22,6 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
   await exigirDocente();
   const id = Number((await params).id);
   const [cab, lista] = await Promise.all([cabecera(id), proyectosDe(id)]);
-  const eps = cab.modalidad.formato === "eps";
   return (
     <>
       <Encabezado

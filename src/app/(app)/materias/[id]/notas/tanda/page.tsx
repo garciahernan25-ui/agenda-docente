@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { notas, CATEGORIAS, type Categoria } from "@/db/schema";
+import { notas } from "@/db/schema";
 import { Cargando, Encabezado, Vacio } from "@/components/ui";
 import { exigirDocente } from "@/lib/auth";
 import { cabecera, listaAlumnos, temasDe } from "@/lib/consultas";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import { tiposDe } from "@/lib/tipos";
 import { EditorTanda } from "./editor";
 import { grupoDe } from "@/lib/grupo";
 
@@ -29,7 +29,9 @@ async function Contenido({
   const sp = await searchParams;
   const c: 1 | 2 = sp.c === "2" ? 2 : 1;
   const fecha = typeof sp.f === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.f) ? sp.f : null;
-  const categoria = CATEGORIAS.includes(sp.cat as Categoria) ? (sp.cat as Categoria) : null;
+  const tipos = await tiposDe(id);
+  const tipo = tipos.find((t) => t.clave === sp.cat) ?? null;
+  const categoria = tipo?.clave ?? null;
   const temaId = typeof sp.t === "string" && /^\d+$/.test(sp.t) ? Number(sp.t) : null;
   const volver = `/materias/${id}/notas?c=${c}`;
 
@@ -63,10 +65,11 @@ async function Contenido({
     <>
       <Encabezado
         titulo="Corregir notas"
-        subtitulo={`${grupoDe(cab)} · ${NOMBRE_CATEGORIA[categoria]} · ${c}° cuatrimestre`}
+        subtitulo={`${grupoDe(cab)} · ${tipo!.nombre} · ${c}° cuatrimestre`}
         volver={volver}
       />
       <EditorTanda
+        tipos={tipos.filter((t) => !t.oculta || t.clave === categoria).map((t) => ({ clave: t.clave, nombre: t.nombre }))}
         key={`${fecha}${categoria}${temaId}`}
         asignacionId={id}
         cuatrimestre={c}

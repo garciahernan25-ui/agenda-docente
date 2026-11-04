@@ -3,22 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CATEGORIAS, type Categoria } from "@/db/constantes";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import type { Categoria } from "@/db/constantes";
 import { encolar, esFallaDeRed } from "@/lib/pendientes";
 import { crearTema, guardarGrillaTema, renombrarTema } from "../acciones";
-
-// Todas las formas de evaluar un tema (el examen es del cuatrimestre, no de un tema)
-const COLUMNAS = CATEGORIAS.filter((c) => c !== "examen");
-const CORTO: Record<Categoria, string> = {
-  participacion: "Particip.",
-  desempeno: "Desemp.",
-  tp_escrito: "TP escrito",
-  actividad_virtual: "Act. virtual",
-  oral: "Oral",
-  quiz: "Quiz",
-  examen: "Examen",
-};
 
 type NotaCelda = { id: number; categoria: Categoria; valor: number; origen: string };
 type Alumno = { inscripcionId: number; orden: number; nombre: string; notas: NotaCelda[] };
@@ -35,8 +22,13 @@ export function GrillaTema(props: {
   temas: { id: number; titulo: string }[];
   tema: { id: number; titulo: string } | null;
   alumnos: Alumno[];
+  // Columnas: los tipos de evaluación de la materia (sin el examen, que es del cuatrimestre)
+  tipos: { clave: string; nombre: string; corto: string }[];
 }) {
   const router = useRouter();
+  const COLUMNAS = props.tipos.map((t) => t.clave);
+  const NOMBRE = Object.fromEntries(props.tipos.map((t) => [t.clave, t.nombre]));
+  const CORTO = Object.fromEntries(props.tipos.map((t) => [t.clave, t.corto]));
   const base = `/materias/${props.asignacionId}/temas?c=${props.cuatrimestre}`;
 
   // Un casillero = una nota. Si en un casillero hay más de una (ej. dos TP del mismo tema), se muestra sin editar.
@@ -213,7 +205,7 @@ export function GrillaTema(props: {
                   <th className="sticky left-0 z-10 bg-hoja px-2 py-2 text-left">N°</th>
                   <th className="sticky left-7 z-10 min-w-[140px] bg-hoja px-2 text-left">Alumno</th>
                   {COLUMNAS.map((c) => (
-                    <th key={c} className="px-1 text-center" title={NOMBRE_CATEGORIA[c]}>{CORTO[c]}</th>
+                    <th key={c} className="px-1 text-center" title={NOMBRE[c]}>{CORTO[c]}</th>
                   ))}
                   <th className="border-l border-borde px-2 text-center">Prom.</th>
                 </tr>
@@ -260,7 +252,7 @@ export function GrillaTema(props: {
                               className={`w-full min-w-[46px] rounded-md border px-1 py-1.5 text-center font-semibold tabular-nums outline-none focus:border-tinta ${
                                 mal ? "border-ausente bg-ausente-bg" : cambio ? (v === "" ? "border-ausente bg-papel placeholder:text-[10px] placeholder:text-ausente" : "border-tarde bg-tarde-bg") : "border-transparent bg-papel"
                               }`}
-                              aria-label={`${NOMBRE_CATEGORIA[cat]} de ${a.nombre}`}
+                              aria-label={`${NOMBRE[cat]} de ${a.nombre}`}
                             />
                           </td>
                         );

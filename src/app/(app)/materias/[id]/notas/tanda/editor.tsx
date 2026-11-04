@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CATEGORIAS, type Categoria } from "@/db/constantes";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import type { Categoria } from "@/db/constantes";
 import { guardarTanda } from "../../acciones";
 
 type Alumno = { inscripcionId: number; orden: number; nombre: string; notas: { id: number; valor: number }[] };
@@ -20,6 +19,7 @@ export function EditorTanda(props: {
   volver: string;
   fecha: string;
   categoria: Categoria;
+  tipos: { clave: string; nombre: string }[];
   temaId: number | null;
   temas: { id: number; titulo: string }[];
   alumnos: Alumno[];
@@ -84,7 +84,7 @@ export function EditorTanda(props: {
         <label className="block">
           <span className="etiqueta">Qué evaluaste</span>
           <select value={categoria} onChange={(e) => setCategoria(e.target.value as Categoria)} className="campo">
-            {CATEGORIAS.map((c) => <option key={c} value={c}>{NOMBRE_CATEGORIA[c]}</option>)}
+            {props.tipos.map((t) => <option key={t.clave} value={t.clave}>{t.nombre}</option>)}
           </select>
         </label>
         {!esExamen && (

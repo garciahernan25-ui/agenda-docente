@@ -8,7 +8,7 @@ import { exigirDocente } from "@/lib/auth";
 import { calificacionPonderada, promediosPorCategoria, resumenAsistencia } from "@/lib/calculos";
 import { cabecera, pesosDe, temasDe } from "@/lib/consultas";
 import { cuatrimestreDe, fechaCortaMayus, fechaMini, hoyAR } from "@/lib/fechas";
-import { NOMBRE_CATEGORIA } from "@/lib/textos";
+import { tiposDe } from "@/lib/tipos";
 import { NotaEditable } from "./borrar";
 import { grupoDe } from "@/lib/grupo";
 
@@ -42,14 +42,16 @@ async function Contenido({
     .where(and(eq(inscripciones.id, inscId), eq(inscripciones.divisionId, cab.div.id)));
   if (!fila) notFound();
 
-  const [ns, cls, regs, [cierre], temas, pesos] = await Promise.all([
+  const [ns, cls, regs, [cierre], temas, pesos, tipos] = await Promise.all([
     db.select().from(notas).where(and(eq(notas.asignacionId, id), eq(notas.inscripcionId, inscId), eq(notas.cuatrimestre, c))).orderBy(asc(notas.fecha)),
     db.select().from(clases).where(and(eq(clases.asignacionId, id), eq(clases.cuatrimestre, c), eq(clases.dictada, true))).orderBy(asc(clases.fecha)),
     db.select().from(asistencias).where(eq(asistencias.inscripcionId, inscId)),
     db.select().from(cierres).where(and(eq(cierres.asignacionId, id), eq(cierres.inscripcionId, inscId))),
     temasDe(id),
     pesosDe(id),
+    tiposDe(id),
   ]);
+  const nombreTipo = Object.fromEntries(tipos.map((t) => [t.clave, t.nombre]));
   const estadoPorClase = new Map(regs.map((r) => [r.claseId, r.estado]));
   const historial = cls.map((cl) => ({ fecha: cl.fecha, estado: estadoPorClase.get(cl.id) ?? null }));
   const asis = resumenAsistencia(historial.map((h) => h.estado).filter((e): e is EstadoAsistencia => !!e));
@@ -89,10 +91,10 @@ async function Contenido({
 
       <h2 className="titulo-seccion">Promedio por parte</h2>
       <ul className="tarjeta divide-y divide-borde text-sm">
-        {(Object.keys(NOMBRE_CATEGORIA) as (keyof typeof NOMBRE_CATEGORIA)[]).map((cat) => (
+        {tipos.filter((t) => !t.oculta || proms[t.clave] !== undefined).map(({ clave: cat }) => (
           <li key={cat} className="flex items-center justify-between px-4 py-2">
             <span>
-              {NOMBRE_CATEGORIA[cat]} <span className="text-xs text-texto-2">· peso {pesos[cat] ?? 0}</span>
+              {nombreTipo[cat]} <span className="text-xs text-texto-2">· peso {pesos[cat] ?? 0}</span>
             </span>
             <span className="tabular-nums">{proms[cat] !== undefined ? String(Math.round(proms[cat]! * 10) / 10).replace(".", ",") : <span className="text-texto-2">–</span>}</span>
           </li>
@@ -110,7 +112,7 @@ async function Contenido({
                 <li key={n.id} className="flex items-center gap-3 px-4 py-2">
                   <span className="w-20 shrink-0 text-xs text-texto-2">{fechaCortaMayus(n.fecha)}</span>
                   <span className="flex-1">
-                    {NOMBRE_CATEGORIA[n.categoria]}
+                    {nombreTipo[n.categoria] ?? n.categoria}
                     {n.origen === "quiz" && <span className="text-xs text-texto-2"> · desde quizzes</span>}
                   </span>
                   <NotaEditable key={`${n.id}-${n.valor}`} asignacionId={id} notaId={n.id} valor={n.valor} />

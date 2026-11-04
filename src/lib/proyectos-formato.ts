@@ -13,7 +13,6 @@ export function renglonesProyecto(texto: string | undefined): string[] {
 
 export function armarProyecto(d: DatosProyecto) {
   const { p, cab, nomina } = d;
-  const eps = cab.modalidad.formato === "eps";
   const horario = p.horaInicio ? `${p.horaInicio}${p.horaFin ? ` a ${p.horaFin}` : ""} h` : "";
   return {
     escuela: cab.escuela.nombre,

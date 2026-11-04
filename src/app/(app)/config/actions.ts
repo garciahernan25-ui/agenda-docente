@@ -9,6 +9,9 @@ import {
   alumnos,
   asignaciones,
   CATEGORIAS,
+  CATEGORIAS_FIJAS,
+  CLAVE_CATEGORIA,
+  notas,
   cursos,
   divisiones,
   escuelas,
@@ -20,6 +23,7 @@ import {
 } from "@/db/schema";
 import { exigirDocente } from "@/lib/auth";
 import { PESOS_POR_DEFECTO } from "@/lib/calculos";
+import { armarTipos } from "@/lib/tipos-comun";
 import { borrarEnCascada, borrarInscripcion } from "@/lib/borrar";
 
 const texto = z.string().trim().min(1, "Completá este campo");
@@ -109,11 +113,7 @@ export async function crearMateria(form: FormData) {
   const d = datos(form, { divisionId: entero, materia: texto, profesor: texto });
   const [a] = await db.insert(asignaciones).values(d).returning();
   await db.insert(pesos).values(
-    Object.entries(PESOS_POR_DEFECTO).map(([categoria, peso]) => ({
-      asignacionId: a.id,
-      categoria: categoria as (typeof CATEGORIAS)[number],
-      peso: peso!,
-    })),
+    CATEGORIAS.map((categoria, i) => ({ asignacionId: a.id, categoria, peso: PESOS_POR_DEFECTO[categoria] ?? 0, orden: i + 1 })),
   );
   listo();
 }
@@ -220,14 +220,97 @@ export async function guardarMateria(form: FormData) {
       })
       .where(eq(asignaciones.id, id));
   }
-  for (const cat of CATEGORIAS) {
-    const v = z.coerce.number().min(0).max(100).catch(0).parse(form.get(`peso_${cat}`) ?? 0);
+  listo();
+}
+
+/* ---------------- Tipos de evaluación de una materia ---------------- */
+
+const entradaTipos = z.object({
+  asignacionId: z.number().int().positive(),
+  tipos: z
+    .array(
+      z.object({
+        clave: z.string().regex(CLAVE_CATEGORIA).nullable(), // null = nuevo
+        nombre: z.string().trim().min(1, "Poné un nombre").max(40),
+        peso: z.number().min(0).max(100),
+        oculta: z.boolean(),
+      }),
+    )
+    .max(30),
+});
+
+function claveNueva(nombre: string, usadas: Set<string>) {
+  const base =
+    "x_" +
+    (nombre
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 30) || "tipo");
+  let clave = base;
+  for (let i = 2; usadas.has(clave); i++) clave = `${base}_${i}`;
+  usadas.add(clave);
+  return clave;
+}
+
+// Guarda la lista entera, en el orden en que viene. Quiz y examen no se pueden sacar.
+// Lo que se saca: si tiene notas (o es de los de base) queda "sacado" y sus notas siguen contando; si no, se borra.
+export async function guardarTipos(datosTipos: z.input<typeof entradaTipos>) {
+  await exigirDocente();
+  const d = entradaTipos.parse(datosTipos);
+  const [asig] = await db.select({ id: asignaciones.id }).from(asignaciones).where(eq(asignaciones.id, d.asignacionId));
+  if (!asig) throw new Error("No existe esa materia");
+  const existentes = await db.select().from(pesos).where(eq(pesos.asignacionId, d.asignacionId));
+  const conNotas = new Set(
+    (await db.selectDistinct({ c: notas.categoria }).from(notas).where(eq(notas.asignacionId, d.asignacionId))).map((r) => r.c),
+  );
+  const usadas = new Set([...existentes.map((e) => e.categoria), ...CATEGORIAS]);
+  const base = new Set<string>(CATEGORIAS);
+
+  const filas = d.tipos.map((t, i) => {
+    const clave = t.clave ?? claveNueva(t.nombre, usadas);
+    const fija = (CATEGORIAS_FIJAS as readonly string[]).includes(clave);
+    return { asignacionId: d.asignacionId, categoria: clave, nombre: t.nombre, peso: t.peso, orden: i + 1, oculta: fija ? false : t.oculta };
+  });
+  // Quiz y examen tienen que estar siempre
+  for (const f of CATEGORIAS_FIJAS) {
+    if (!filas.some((x) => x.categoria === f)) throw new Error("Quiz y Examen no se pueden sacar");
+  }
+  const enLista = new Set(filas.map((f) => f.categoria));
+  const faltan = [...new Set([...existentes.map((e) => e.categoria), ...CATEGORIAS])].filter((c) => !enLista.has(c));
+
+  for (const f of filas) {
     await db
       .insert(pesos)
-      .values({ asignacionId: id, categoria: cat, peso: v })
-      .onConflictDoUpdate({ target: [pesos.asignacionId, pesos.categoria], set: { peso: v } });
+      .values(f)
+      .onConflictDoUpdate({ target: [pesos.asignacionId, pesos.categoria], set: { nombre: f.nombre, peso: f.peso, orden: f.orden, oculta: f.oculta } });
+  }
+  for (const c of faltan) {
+    if (conNotas.has(c) || base.has(c)) {
+      const ya = existentes.find((e) => e.categoria === c);
+      await db
+        .insert(pesos)
+        .values({ asignacionId: d.asignacionId, categoria: c, peso: ya?.peso ?? PESOS_POR_DEFECTO[c] ?? 0, nombre: ya?.nombre ?? null, orden: 900, oculta: true })
+        .onConflictDoUpdate({ target: [pesos.asignacionId, pesos.categoria], set: { oculta: true, orden: 900 } });
+    } else {
+      await db.delete(pesos).where(and(eq(pesos.asignacionId, d.asignacionId), eq(pesos.categoria, c)));
+    }
   }
   listo();
+  return { ok: true as const };
+}
+
+// Trae los tipos de otra materia (nombres, pesos y orden). Los propios que tengan notas no se pierden: quedan sacados.
+export async function copiarTipos(desde: number, hacia: number) {
+  await exigirDocente();
+  const origen = await db.select().from(pesos).where(eq(pesos.asignacionId, desde));
+  const lista = armarTipos(origen);
+  return guardarTipos({
+    asignacionId: hacia,
+    tipos: lista.map((t) => ({ clave: t.clave, nombre: t.nombre, peso: t.peso, oculta: t.oculta })),
+  });
 }
 
 export async function guardarDivision(form: FormData) {
