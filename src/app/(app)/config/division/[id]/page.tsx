@@ -8,6 +8,7 @@ import { exigirDocente } from "@/lib/auth";
 import { listarMaterias } from "@/lib/consultas";
 import { armarTipos } from "@/lib/tipos-comun";
 import { EditorTipos } from "./tipos";
+import { FotoLista } from "./foto-lista";
 import { BotonBorrar } from "@/components/boton-borrar";
 import { nombreGrupo, textosGrupo } from "@/lib/grupo";
 import { actualizarInscripcion, agregarAlumnos, asignarNivelATodos, borrarAlumno, borrarElemento, crearMateria, guardarDivision, guardarMateria } from "../../actions";
@@ -270,6 +271,7 @@ async function Contenido({ params }: { params: Promise<{ id: string }> }) {
           <p className="text-xs text-texto-2">Se agregan al final de la lista. Si alguien dejó de venir, marcalo como Baja así conserva su número en la planilla.</p>
           <button className="boton-primario w-full">Agregar alumnos</button>
         </form>
+        <FotoLista divisionId={id} eps={eps} />
       </details>
     </>
   );

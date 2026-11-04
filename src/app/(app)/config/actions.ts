@@ -142,6 +142,31 @@ export async function agregarAlumnos(form: FormData) {
   listo();
 }
 
+// Los alumnos leídos de una foto (ya revisados): se agregan al final, y los tachados quedan de baja
+export async function agregarAlumnosLeidos(entrada: { divisionId: number; alumnos: { apellido: string; nombre: string; baja: boolean }[] }) {
+  await exigirDocente();
+  const d = z
+    .object({
+      divisionId: z.number().int().positive(),
+      alumnos: z
+        .array(z.object({ apellido: z.string().trim().min(1).max(80), nombre: z.string().trim().max(80), baja: z.boolean() }))
+        .min(1)
+        .max(80),
+    })
+    .parse(entrada);
+  const [div] = await db.select({ id: divisiones.id }).from(divisiones).where(eq(divisiones.id, d.divisionId));
+  if (!div) throw new Error("No existe esa división");
+  const [{ ultimo }] = await db.select({ ultimo: max(inscripciones.orden) }).from(inscripciones).where(eq(inscripciones.divisionId, d.divisionId));
+  let orden = ultimo ?? 0;
+  for (const a of d.alumnos) {
+    const [apellido, nombre] = separarNombre(`${a.apellido}, ${a.nombre}`);
+    const [al] = await db.insert(alumnos).values({ apellido, nombre }).returning();
+    await db.insert(inscripciones).values({ divisionId: d.divisionId, alumnoId: al.id, orden: ++orden, estado: a.baja ? "baja" : "activo" });
+  }
+  listo();
+  return { ok: true as const, cantidad: d.alumnos.length };
+}
+
 function separarNombre(r: string): [string, string] {
   const titulo = (s: string) =>
     s
